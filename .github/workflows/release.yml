@@ -73,7 +73,7 @@ jobs:
           $notes = $m.Groups[1].Value.Trim() + "`n" + $footer
           Set-Content -Path release-notes.md -Value $notes -Encoding utf8
           "RELEASE_VERSION=$version" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
-          "release $tag: notes ready ($($notes.Length) characters)"
+          "release ${tag}: notes ready ($($notes.Length) characters)"
 
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
