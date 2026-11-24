@@ -60,7 +60,14 @@ pub fn migrate_legacy(avd_home: &Path) -> Vec<String> {
         if new_ini.exists() || new_dir.exists() || !old_dir.is_dir() {
             continue;
         }
-        if std::fs::rename(&old_dir, &new_dir).is_err() {
+        // a virus scanner or the search indexer can hold a folder for a moment: try a few times
+        let moved = (0..5).any(|i| {
+            if i > 0 {
+                std::thread::sleep(std::time::Duration::from_millis(200));
+            }
+            std::fs::rename(&old_dir, &new_dir).is_ok()
+        });
+        if !moved {
             continue; // an emulator of the old version still runs it: next start
         }
         let ini = std::fs::read_to_string(&old_ini).unwrap_or_default();

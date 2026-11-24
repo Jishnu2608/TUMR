@@ -1,0 +1,65 @@
+name: Publish to the MCP Registry
+
+# REL-008: when the owner publishes a GitHub release (made as a draft by the Release build
+# workflow), send that release's server.json to the official MCP Registry. Sign-in is GitHub's
+# own OIDC token for this workflow (`mcp-publisher login github-oidc`): no stored secret. The
+# server name io.github.Jishnu2608/tumr belongs to this repository's owner, which the registry
+# checks. Pre-releases are skipped. Run it by hand (workflow_dispatch) to publish an existing tag.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v0.1.34)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: mcp-registry
+  cancel-in-progress: false
+
+env:
+  # pinned: the version that published 0.1.33 (2026-11-20)
+  MCP_PUBLISHER_VERSION: v1.8.10
+
+jobs:
+  publish:
+    name: Publish server.json
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Get the release's server.json and MCP bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern server.json --pattern '*.mcpb'
+          ls -l
+          # the bundle the registry entry points at must be the attached one
+          want=$(jq -r '.packages[0].fileSha256' server.json)
+          have=$(sha256sum ./*.mcpb | cut -d' ' -f1)
+          [ "$want" = "$have" ] || { echo "server.json SHA-256 $want does not match the attached .mcpb ($have)"; exit 1; }
+          ver=$(jq -r '.version' server.json)
+          [ "v$ver" = "$TAG" ] || { echo "server.json is version $ver, the release is $TAG"; exit 1; }
+          echo "server.json $ver matches the attached bundle"
+
+      - name: Install mcp-publisher
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher --version
+
+      - name: Validate, sign in and publish
+        run: |
+          set -euo pipefail
+          ./mcp-publisher validate
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
+          echo "### Published $(jq -r '.name' server.json) $(jq -r '.version' server.json) to the MCP Registry" >> "$GITHUB_STEP_SUMMARY"

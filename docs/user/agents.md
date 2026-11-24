@@ -14,7 +14,7 @@ Each agent has a plugin that brings the `tumr` MCP server, the runtime's instruc
 | VS Code (Copilot) | The VS Code extension `tumr.tumr-vscode`, then **Connect Copilot (agent mode)** |
 | Claude Desktop | Open the `tumr-mcp_<version>_win32-x64.mcpb` file from the release page |
 
-When an agent starts the app (`run_project`), the phone opens in its own window on the left of the screen. If you move it, it stays where you put it. In VS Code the Mobile Preview opens to the left of the code.
+When an agent starts the app (`run_project`), the phone opens in its own window on the right of the screen. If you move it, it stays where you put it. In VS Code the Mobile Preview opens to the right of the code.
 
 To disconnect a plugin, remove the agent on the runtime's Agents page (or `tumr agent remove <agent>`): the plugin then stays disconnected until you connect the agent again there or with `tumr agent setup`.
 

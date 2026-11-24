@@ -1,5 +1,7 @@
 # Toolchain Universal Mobile Runtime for VS Code
 
+> **Install the runtime first.** This extension drives Toolchain Universal Mobile Runtime, a free Windows app that sets up the Android tools and runs the emulator. Download `Toolchain-Universal-Mobile-Runtime_<version>_x64-setup.exe` from the [latest release](https://github.com/Jishnu2608/TUMR/releases/latest), install it (no admin rights needed) and open it once. Windows x64 only.
+
 **Run your Android app on an emulator without leaving VS Code** — for Kotlin, Java, Flutter (Dart) and React Native / Expo.
 
 Toolchain Universal Mobile Runtime builds your app, boots an Android emulator and shows the running app in a phone frame beside your code. Saved files apply themselves, build errors and crashes land in the Problems panel, and Copilot's agent mode can see the screen and check its own changes.
@@ -19,7 +21,7 @@ Toolchain Universal Mobile Runtime builds your app, boots an Android emulator an
 ## Requirements
 
 - **Windows 11 x64** with CPU virtualization turned on.
-- **Toolchain Universal Mobile Runtime** installed on the same PC. It sets up the Android toolchain for your project and runs the emulator. Get it from the [Toolchain Universal Mobile Runtime project](https://github.com/Jishnu2608/TUMR).
+- **Toolchain Universal Mobile Runtime** installed on the same PC. It sets up the Android toolchain for your project and runs the emulator. Get it from the [latest release](https://github.com/Jishnu2608/TUMR/releases/latest); without it, the status bar shows **Mobile: install the runtime**, which opens that page.
 
 The extension finds `tumr.exe` on `PATH` or in the default install folder. Elsewhere, run **Toolchain Universal Mobile Runtime: Locate tumr.exe** or set `tumr.path`.
 

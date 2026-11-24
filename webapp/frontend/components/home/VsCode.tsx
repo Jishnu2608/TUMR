@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Puzzle } from "lucide-react";
 import { Reveal } from "@/components/motion/Reveal";
-import { Status } from "@/components/ui/Status";
 import { site } from "@/lib/site";
 
 /* The VS Code extension on the home page. */
@@ -65,8 +64,7 @@ export function VsCode() {
             </Link>
           </div>
           <p className="t-desc mt-4" data-reveal>
-            Needs the runtime installed. Until the Marketplace listing is live, install the <code>.vsix</code> as described on the{" "}
-            <Link className="link" href="/download/#vscode">download page</Link>. Try it with the{" "}
+            Needs the runtime installed (<Link className="link" href="/download/">download page</Link>). Try it with the{" "}
             <a className="link" href={`${site.repository}/tree/main/sample-app`} rel="noopener">
               sample calculators
             </a>{" "}
@@ -74,57 +72,26 @@ export function VsCode() {
           </p>
         </div>
         <div className="lg:col-span-6" data-reveal>
-          <EditorSketch />
+          <EditorShot />
         </div>
       </Reveal>
     </section>
   );
 }
 
-/**
- * A drawn sketch of the layout (editor, Mobile Preview panel, Problems panel), not a screenshot:
- * a real capture replaces it later.
- */
-function EditorSketch() {
+/** WEB-015: a real capture of VS Code (sample-kotlin running, Mobile Preview panel, Problems tab). */
+function EditorShot() {
   return (
-    <figure aria-label="Sketch: VS Code with the Mobile Preview panel beside the editor" className="vs-sketch">
-      <div className="vs-titlebar">
-        <span />
-        <span />
-        <span />
-        <p>Calculator.kt — sample-kotlin</p>
-      </div>
-      <div className="vs-body">
-        <div className="vs-editor" aria-hidden>
-          {[62, 80, 44, 70, 90, 38, 76, 58, 84, 50, 66, 40].map((w, i) => (
-            <div key={i} className={i === 6 ? "vs-line vs-line-error" : "vs-line"} style={{ width: `${w}%` }} />
-          ))}
-        </div>
-        <div className="vs-panel" aria-hidden>
-          <p className="vs-panel-title">Mobile Preview</p>
-          <div className="vs-phone">
-            <span className="vs-cam" />
-            <div className="vs-display">60</div>
-            <div className="vs-keys">
-              {Array.from({ length: 16 }, (_, i) => (
-                <span key={i} className={i % 4 === 3 ? "vs-key vs-key-op" : "vs-key"} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="vs-problems">
-        <Status kind="warn">Problems 1</Status>
-        <code>Calculator.kt:53 · Unresolved reference &apos;bb&apos; · Toolchain Universal Mobile Runtime · build</code>
-      </div>
-      <div className="vs-statusbar">
-        <span>▣ com.tumr.samples.kotlincalc</span>
-        <span>emulator-5554</span>
-      </div>
-      <figcaption className="sr-only">
-        The editor on the left, the running app in the Mobile Preview panel on the right, and the runtime&apos;s build error in the
-        Problems panel below.
-      </figcaption>
+    <figure className="overflow-hidden rounded-[14px] border border-line-strong shadow-2">
+      {/* eslint-disable-next-line @next/next/no-img-element -- static export, pre-sized PNG */}
+      <img
+        src="/images/vscode-mobile-preview.png"
+        width={1400}
+        height={1006}
+        loading="lazy"
+        className="block h-auto w-full"
+        alt="VS Code with Calculator.kt open in the editor, the running calculator app in the Mobile Preview panel beside it, and the runtime's Problems tab below the phone"
+      />
     </figure>
   );
 }

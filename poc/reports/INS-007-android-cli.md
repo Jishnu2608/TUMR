@@ -14,5 +14,5 @@
 | 5 | Licence prompt | `android sdk install` shows the Terms of Service URL but asks nothing and writes `licenses\android-sdk-license` itself. | Unchanged: the product's own licence gate (INS-004) runs first. |
 
 ## Open
-- **DEC-012 (owner):** pin the Android CLI runtime by mirroring a verified copy and setting `ANDROID_CLI_DOWNLOAD_URL`, or accept "latest from dl.google.com" with change detection (current behaviour).
+- **DEC-012 (owner), decided 2026-11-20:** keep "latest from dl.google.com" with change detection (the current behaviour); no mirrored copy.
 - Upload behaviour of `last_upload_time` with metrics on is still unverified (would need network capture); irrelevant while `--no-metrics` is always passed and spool files are purged.

@@ -22,7 +22,7 @@ fn settings(target: &CoreTarget) -> Result<(String, String, bool), String> {
     let url = std::env::var("TUMR_UPDATE_URL")
         .ok()
         .filter(|v| !v.is_empty())
-        .unwrap_or(cfg.update.manifest_url);
+        .unwrap_or_else(|| cfg.update.manifest().unwrap_or_default());
     Ok((url, cfg.update.channel, cfg.update.require_signed))
 }
 
@@ -88,7 +88,7 @@ pub async fn run(
         if json_out {
             println!("{}", json!({ "current": VERSION, "configured": false }));
         } else {
-            println!("Toolchain Universal Mobile Runtime {VERSION}. No update channel is configured ([update] manifest_url in config.toml).");
+            println!("Toolchain Universal Mobile Runtime {VERSION}. Update checks are off ([update] manifest_url = \"off\" in config.toml).");
         }
         return ExitCode::SUCCESS;
     }

@@ -6,8 +6,9 @@
 //! itself (default scopes, never admin) and puts "<agent> connected" on the home screen. A client
 //! the user disconnected in the app ([`off_path`]) is not recreated.
 //!
-//! PLUG-004 (owner decision, "snap left, once"): the first `run_project` of an agent opens the
-//! phone window docked to the left edge; a window that is already open stays where it is.
+//! PLUG-004 (owner decision 2026-11-20, dock right): the first `run_project` of an agent opens
+//! the phone window docked to the right edge, like `tumr run`; a window that is already open stays
+//! where it is.
 //! Only MCP messages go to stdout; diagnostics go to stderr. Ending this process (the agent
 //! quits or is killed) leaves the Core, the device and the running app untouched.
 
@@ -91,7 +92,7 @@ impl Core for PipeCore {
     async fn call(&mut self, method: &str, params: Value) -> Result<Value, String> {
         if method == methods::PROJECT_RUN && !self.window {
             self.window = true;
-            if let Err(e) = crate::preview_cmd::open_window(&self.target, "left").await {
+            if let Err(e) = crate::preview_cmd::open_window(&self.target, "right").await {
                 eprintln!("tumr mcp: phone window: {e}");
             }
         }

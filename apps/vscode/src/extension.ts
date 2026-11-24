@@ -33,13 +33,22 @@ function getCore(): CoreClient | undefined {
   return core;
 }
 
+/** Where people get the runtime the extension drives (installer, ZIPs). */
+export const RUNTIME_DOWNLOAD = "https://github.com/Jishnu2608/TUMR/releases/latest";
+
 async function requireTumr(): Promise<string | undefined> {
   const exe = tumrExe();
   if (exe) return exe;
+  const download = "Download the runtime";
   const pick = await vscode.window.showErrorMessage(
-    "Toolchain Universal Mobile Runtime: tumr.exe was not found (not on PATH, not in the default install folder).",
+    "This extension needs Toolchain Universal Mobile Runtime on this PC (Windows x64). Install it, open it once to set up the Android tools, then run this again. Installed somewhere else? Locate tumr.exe.",
+    download,
     "Locate tumr.exe",
   );
+  if (pick === download) {
+    vscode.env.openExternal(vscode.Uri.parse(RUNTIME_DOWNLOAD));
+    return undefined;
+  }
   if (pick) return locate();
   return undefined;
 }
@@ -116,6 +125,11 @@ export function activate(context: vscode.ExtensionContext): void {
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
   status.command = "tumr.menu";
   status.text = "$(device-mobile) Mobile";
+  context.subscriptions.push(
+    vscode.commands.registerCommand("tumr.downloadRuntime", () =>
+      vscode.env.openExternal(vscode.Uri.parse(RUNTIME_DOWNLOAD)),
+    ),
+  );
   status.tooltip = "Toolchain Universal Mobile Runtime";
   status.show();
   context.subscriptions.push(diagnostics, status, { dispose: () => core?.dispose() });
@@ -164,9 +178,12 @@ export function activate(context: vscode.ExtensionContext): void {
     if (busy || !vscode.window.state.focused) return;
     const c = getCore();
     if (!c) {
-      status.text = "$(device-mobile) Mobile: tumr.exe not found";
+      status.text = "$(device-mobile) Mobile: install the runtime";
+      status.tooltip = "Toolchain Universal Mobile Runtime is not installed on this PC. Click to download it.";
+      status.command = "tumr.downloadRuntime";
       return;
     }
+    status.command = "tumr.menu";
     busy = true;
     try {
       const s = await c.call("project.status", {}, 15_000);

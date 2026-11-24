@@ -3,8 +3,10 @@ name: Release build
 # Manual only (task DIST-001). Builds a release on a fresh GitHub-hosted Windows VM with scripts/release.ps1 and
 # keeps the result as a workflow artifact: per-user NSIS installer, portable ZIP, CLI ZIP,
 # SHA256SUMS and releases.json (download URLs point at this repository's GitHub Releases, W5).
-# Nothing is published and nothing is signed yet: publishing to GitHub Releases is a later step
-# of DIST-001, and signing waits for the code-signing decision (W8).
+# REL-008: after the build and the checks it creates a DRAFT GitHub release v<version> with all
+# files and the notes from CHANGELOG.md. Drafts are not public: the owner reviews it and presses
+# Publish; publishing then sends server.json to the MCP Registry (mcp-registry.yml). Nothing is
+# signed yet (W8).
 # It also installs the new installer silently, runs the installed tumr, and uninstalls it again,
 # so every release build is checked on a clean machine.
 on:
@@ -15,9 +17,18 @@ on:
         type: choice
         options: [stable, beta]
         default: stable
+      draft_release:
+        description: "Create the draft GitHub release (off: only build and keep the files)"
+        type: boolean
+        default: true
+      prerelease:
+        description: "Mark the draft as a pre-release (tests; never listed as latest, not sent to the MCP Registry)"
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  # contents: write creates the draft release (and its tag when it is published)
+  contents: write
 
 concurrency:
   group: release-build
@@ -33,6 +44,37 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+
+      # stop before the long build when the release cannot be drafted anyway
+      - name: Check the version, its tag and its release notes
+        if: ${{ inputs.draft_release }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $toml = Get-Content Cargo.toml -Raw
+          if ($toml -notmatch '(?m)^\[workspace\.package\][\s\S]*?^version\s*=\s*"([^"]+)"') { throw "no version in Cargo.toml" }
+          $version = $Matches[1]
+          $tag = "v$version"
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) { throw "release $tag exists already: raise the version in Cargo.toml first" }
+          git ls-remote --exit-code --tags origin "refs/tags/$tag" *> $null
+          if ($LASTEXITCODE -eq 0) { throw "tag $tag exists already: raise the version in Cargo.toml first" }
+          $log = Get-Content CHANGELOG.md -Raw
+          $m = [regex]::Match($log, "(?ms)^## $([regex]::Escape($version))\s*\r?\n(.*?)(?=^## |\z)")
+          if (-not $m.Success -or -not $m.Groups[1].Value.Trim()) { throw "CHANGELOG.md has no '## $version' section: add the release notes first" }
+          $footer = @(
+            '',
+            '---',
+            '**Files:** the installer (per user, no administrator rights) is the recommended download; the portable ZIP and the command-line ZIP need no install. `tumr-mcp_*.mcpb` is the MCP bundle for Claude Desktop, `tumr-vscode-*.vsix` the VS Code extension (also on the VS Code Marketplace and Open VSX). Checksums: `SHA256SUMS`.',
+            '',
+            'Windows 11 x64. Not code-signed yet: Windows SmartScreen warns on first start (More info > Run anyway).'
+          ) -join "`n"
+          $notes = $m.Groups[1].Value.Trim() + "`n" + $footer
+          Set-Content -Path release-notes.md -Value $notes -Encoding utf8
+          "RELEASE_VERSION=$version" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "release $tag: notes ready ($($notes.Length) characters)"
+
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
@@ -102,3 +144,25 @@ jobs:
             ${{ env.RELEASE_DIR }}/releases.json
           retention-days: 14
           if-no-files-found: error
+
+      - name: Create the draft GitHub release
+        if: ${{ inputs.draft_release }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = Get-ChildItem $env:RELEASE_DIR -File |
+            Where-Object { $_.Extension -in '.exe', '.zip', '.mcpb', '.vsix' -or $_.Name -in 'server.json', 'SHA256SUMS', 'releases.json' }
+          if ($files.Count -lt 8) { throw "expected 8 release files, found $($files.Count): $($files.Name -join ', ')" }
+          $man = Get-Content (Join-Path $env:RELEASE_DIR "releases.json") -Raw | ConvertFrom-Json
+          if ($man.releases[0].version -ne $env:RELEASE_VERSION) { throw "built $($man.releases[0].version), expected $env:RELEASE_VERSION" }
+          $ghArgs = @("release", "create", "v$env:RELEASE_VERSION", "--repo", $env:GITHUB_REPOSITORY, "--draft",
+            "--target", $env:GITHUB_SHA, "--title", "Toolchain Universal Mobile Runtime $env:RELEASE_VERSION",
+            "--notes-file", "release-notes.md")
+          if ("${{ inputs.prerelease }}" -eq "true") { $ghArgs += "--prerelease" } else { $ghArgs += "--latest" }
+          $ghArgs += $files.FullName
+          gh @ghArgs
+          if ($LASTEXITCODE -ne 0) { throw "creating the draft release failed" }
+          "Draft release v$env:RELEASE_VERSION created with $($files.Count) files. Review it on GitHub (Releases) and press Publish."
+          "### Draft release v$env:RELEASE_VERSION ready" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          "Review it under **Releases** and press **Publish release**. Publishing sends server.json to the MCP Registry." | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY

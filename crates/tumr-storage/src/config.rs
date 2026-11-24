@@ -21,12 +21,30 @@ pub struct Config {
     pub update: UpdateConfig,
 }
 
+/// DEC-036 (owner, 2026-11-20): the update channel when `manifest_url` is empty: the manifest of
+/// the latest GitHub release.
+pub const DEFAULT_MANIFEST_URL: &str =
+    "https://github.com/Jishnu2608/TUMR/releases/latest/download/releases.json";
+
+impl UpdateConfig {
+    /// The manifest to check: the configured URL, the default when empty, `None` when `off`.
+    #[must_use]
+    pub fn manifest(&self) -> Option<String> {
+        match self.manifest_url.trim() {
+            "" => Some(DEFAULT_MANIFEST_URL.to_string()),
+            u if u.eq_ignore_ascii_case("off") => None,
+            u => Some(u.to_string()),
+        }
+    }
+}
+
 /// `[update]` section (REL-002).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct UpdateConfig {
-    /// Release manifest (`releases.json`). Empty = no update checks. HTTPS only (plain HTTP
-    /// is accepted for 127.0.0.1 / localhost, for testing).
+    /// Release manifest (`releases.json`). Empty = the project's GitHub Releases
+    /// ([`DEFAULT_MANIFEST_URL`], DEC-036); `off` = no update checks. HTTPS only (plain HTTP is
+    /// accepted for 127.0.0.1 / localhost, for testing).
     pub manifest_url: String,
     /// `stable`, or `beta` (also offers stable releases).
     pub channel: String,
@@ -147,7 +165,8 @@ toolchains_dir = ""
 adb_port = 5137
 
 [update]
-# Release manifest checked by `tumr update`. Empty = no update checks.
+# Release manifest checked at start and by `tumr update` (only that file is downloaded; you
+# decide whether to install). Empty = the project's GitHub Releases. "off" = no update checks.
 manifest_url = ""
 # stable | beta
 channel = "stable"
@@ -203,6 +222,22 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn update_channel_defaults_to_github_and_can_be_turned_off() {
+        let mut u = UpdateConfig::default();
+        assert_eq!(u.manifest().as_deref(), Some(DEFAULT_MANIFEST_URL));
+        u.manifest_url = " OFF ".into();
+        assert_eq!(u.manifest(), None);
+        u.manifest_url = "https://example.org/releases.json".into();
+        assert_eq!(
+            u.manifest().as_deref(),
+            Some("https://example.org/releases.json")
+        );
+        // the written template keeps the default (empty)
+        let c: Config = toml::from_str(DEFAULT_TEMPLATE).unwrap();
+        assert_eq!(c.update.manifest().as_deref(), Some(DEFAULT_MANIFEST_URL));
+    }
 
     #[test]
     fn toolchains_dir_setting() {

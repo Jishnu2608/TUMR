@@ -240,8 +240,7 @@ function VsCodeExtension() {
             </CodeBlock>
             <p className="t-desc mt-3">
               Then open your app&apos;s folder and click <strong>Mobile</strong> in the status bar. VS Code updates the extension by itself.
-              Cursor, Windsurf and VSCodium use Open VSX; until the listing there is live, install the <code>{site.vscode.vsix}</code> file
-              (Extensions › … › Install from VSIX…).
+              Cursor, Windsurf and VSCodium install it the same way from Open VSX.
             </p>
           </>
         ) : (

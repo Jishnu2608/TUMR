@@ -1,5 +1,51 @@
 {
   "schema": 1,
   "product": "Toolchain Universal Mobile Runtime",
-  "releases": []
+  "releases": [
+    {
+      "version": "0.1.33",
+      "channel": "stable",
+      "date": "2026-11-20",
+      "min_windows_build": 22000,
+      "signed": false,
+      "notes_url": "https://github.com/Jishnu2608/TUMR/releases/tag/v0.1.33",
+      "files": [
+        {
+          "kind": "installer",
+          "name": "Toolchain-Universal-Mobile-Runtime_0.1.33_x64-setup.exe",
+          "url": "https://github.com/Jishnu2608/TUMR/releases/download/v0.1.33/Toolchain-Universal-Mobile-Runtime_0.1.33_x64-setup.exe",
+          "size": 7616951,
+          "sha256": "cfaa59e36d5a42212249f80666f67276804f73a1f1ca439206b6fd1dcfb7a95b"
+        },
+        {
+          "kind": "portable",
+          "name": "Toolchain-Universal-Mobile-Runtime_0.1.33_x64-portable.zip",
+          "url": "https://github.com/Jishnu2608/TUMR/releases/download/v0.1.33/Toolchain-Universal-Mobile-Runtime_0.1.33_x64-portable.zip",
+          "size": 10815498,
+          "sha256": "e6e1b6bf8cc50213ec01ca3889e95e0285fba0d6cd40ab76c4879c5b9a5d79cc"
+        },
+        {
+          "kind": "cli",
+          "name": "tumr-cli_0.1.33_x64.zip",
+          "url": "https://github.com/Jishnu2608/TUMR/releases/download/v0.1.33/tumr-cli_0.1.33_x64.zip",
+          "size": 8017894,
+          "sha256": "60ccb3daac054f057214604cdb700643b408096dd718fa6103ea94ecf7c50801"
+        },
+        {
+          "kind": "mcpb",
+          "name": "tumr-mcp_0.1.33_win32-x64.mcpb",
+          "url": "https://github.com/Jishnu2608/TUMR/releases/download/v0.1.33/tumr-mcp_0.1.33_win32-x64.mcpb",
+          "size": 49036,
+          "sha256": "d785d00def38b5cd616de4eb7dee781c4c412e9efd8f449348ee94cc33fe45da"
+        },
+        {
+          "kind": "vscode",
+          "name": "tumr-vscode-0.1.4-win32-x64.vsix",
+          "url": "https://github.com/Jishnu2608/TUMR/releases/download/v0.1.33/tumr-vscode-0.1.4-win32-x64.vsix",
+          "size": 161211,
+          "sha256": "b7c0473cfad577c0ca318d7e69be5ad788e838bed6dffdce996b5b44a3317b14"
+        }
+      ]
+    }
+  ]
 }

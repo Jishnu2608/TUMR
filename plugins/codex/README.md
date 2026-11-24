@@ -5,7 +5,7 @@ marketplace in the Codex app's Plugins directory (or `codex plugin add tumr@tumr
 
 Run your Android app (Kotlin/Java, Flutter, React Native/Expo) on an emulator next to Codex:
 
-- The phone opens in its own window on the left of the screen and updates live as the agent edits
+- The phone opens in its own window on the right of the screen and updates live as the agent edits
   the code (Flutter hot reload, React Native Fast Refresh, an incremental Gradle rebuild for
   Kotlin/Java).
 - The agent gets the runtime's MCP tools (`runtime_status`, `get_diagnostic`, `screenshot`, `tap`,
@@ -17,9 +17,9 @@ Run your Android app (Kotlin/Java, Flutter, React Native/Expo) on an emulator ne
 
 ## Requirements
 
-- Windows 10 or 11 (x64).
+- Windows 11 (x64).
 - Toolchain Universal Mobile Runtime installed and opened once:
-  https://github.com/Jishnu2608/TUMR/releases. The plugin finds it in its default folder
+  https://github.com/Jishnu2608/TUMR/releases/latest (the `_x64-setup.exe` file). The plugin finds it in its default folder
   (`%LOCALAPPDATA%\Toolchain Universal Mobile Runtime`), through the `TUMR_EXE` environment
   variable, or on `PATH`.
 

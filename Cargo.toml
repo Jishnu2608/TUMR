@@ -25,6 +25,14 @@ undocumented_unsafe_blocks = "warn"
 module_name_repetitions = "allow"
 missing_errors_doc = "allow"
 
+# DISK-002: debug and test builds keep file-and-line debug info only (stack traces still show
+# where), not full symbols; target\debug grew to over 100 GB with full .pdb files.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.test]
+debug = "line-tables-only"
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

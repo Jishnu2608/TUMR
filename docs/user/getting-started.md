@@ -80,4 +80,4 @@ Then ask your agent something like: *"The app is running in the Toolchain Univer
 `tumr problems` lists what failed, classified and with file and line; `tumr logs -f` follows the app's log. The [troubleshooting guide](troubleshooting.md) has the common causes; in the preview window's Problems panel, **How to fix** opens its section for that kind of problem.
 
 ## Updates
-`tumr update --check` tells you whether a newer version exists; `tumr update` downloads it, checks its checksum and installs it. Updates are checked only when you ask, against the release channel in `%USERPROFILE%\.tumr\config.toml` (`[update] manifest_url`).
+`tumr update --check` tells you whether a newer version exists; `tumr update` downloads it, checks its checksum and installs it. The app also checks when it starts and offers **Update now**; nothing is installed without your click. The check reads the release list of the project's GitHub Releases; set `manifest_url = "off"` under `[update]` in `%USERPROFILE%\.tumr\config.toml` to turn it off, or another URL for your own channel.

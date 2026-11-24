@@ -1,5 +1,6 @@
 //! UPD-001: in-app updates. The wizard asks at start whether a newer version is published on the
-//! configured channel (`[update] manifest_url`; nothing is contacted when none is set) and offers
+//! update channel (`[update] manifest_url`: empty = GitHub Releases, DEC-036; `off` = nothing is
+//! contacted) and offers
 //! **Update now**: `tumr update --yes --relaunch` downloads the installer, checks its size and
 //! SHA-256 (and signature when required), closes this app, installs over the existing copy
 //! (settings, toolchains and emulators stay) and opens the app again.

@@ -31,7 +31,7 @@ export const site = {
     },
     openVsx: {
       url: "https://open-vsx.org/extension/tumr/tumr-vscode",
-      published: false as boolean,
+      published: true as boolean,
     },
   },
 } as const;

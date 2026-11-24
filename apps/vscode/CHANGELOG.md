@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5
+
+- The Mobile Preview opens to the right of your code again, without taking the focus from the editor (0.1.4 tried to move it to the left).
+- Without Toolchain Universal Mobile Runtime on the PC, the extension now says so and offers **Download the runtime**, which opens the latest release; the status bar shows **Mobile: install the runtime** and opens the same page.
+- New command: Toolchain Universal Mobile Runtime: Download the Runtime.
+
 ## 0.1.4
 
 - The Mobile Preview opens to the left of your code. Move it anywhere afterwards; it stays there.
