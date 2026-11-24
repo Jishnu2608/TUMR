@@ -74,6 +74,8 @@ jobs:
           Set-Content -Path release-notes.md -Value $notes -Encoding utf8
           "RELEASE_VERSION=$version" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           "release ${tag}: notes ready ($($notes.Length) characters)"
+          # git ls-remote returns 2 when the tag is missing (the good case); the step must not fail on it
+          $global:LASTEXITCODE = 0
 
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
