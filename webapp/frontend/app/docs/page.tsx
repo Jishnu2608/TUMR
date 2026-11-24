@@ -17,7 +17,7 @@ export default function DocsIndex() {
         <p className="t-lead mt-5">
           Start with the getting-started guide. It takes you from the installer to a running app and a connected agent.
         </p>
-        <Link href="/docs/getting-started/" className="btn btn-primary mt-8 h-11 px-5">
+        <Link href="/docs/getting-started/" className="btn btn-primary mt-8">
           Read the getting-started guide
           <ArrowRight aria-hidden className="btn-icon size-4" />
         </Link>

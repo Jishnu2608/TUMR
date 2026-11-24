@@ -11,7 +11,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "postbuild": "node scripts/flatten-segments.mjs",
-    "check": "node scripts/check-links.mjs"
+    "check": "node scripts/check-links.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@gsap/react": "2.1.2",

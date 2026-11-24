@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6
+
+- New look: the Studio / Signal colours of Toolchain Universal Mobile Runtime. The icon keeps its shape (a phone showing an agent's prompt) on an ink tile with a blue prompt, and the Mobile Preview uses Signal Blue for actions and focus, coral for build progress and sage for a healthy connection, in light and dark themes.
+
 ## 0.1.5
 
 - The Mobile Preview opens to the right of your code again, without taking the focus from the editor (0.1.4 tried to move it to the left).

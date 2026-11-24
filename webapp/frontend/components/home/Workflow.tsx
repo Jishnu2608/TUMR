@@ -154,8 +154,8 @@ export function Workflow() {
                   width={p.w}
                   height={30}
                   rx={6}
-                  fill={lit ? (k === "core" ? "var(--lime)" : "var(--band-surface)") : "var(--band-sunken)"}
-                  stroke={lit ? (k === "core" ? "var(--lime)" : "var(--band-ink-2)") : "var(--band-line)"}
+                  fill={lit ? (k === "core" ? "var(--signal)" : "var(--band-surface)") : "var(--band-sunken)"}
+                  stroke={lit ? (k === "core" ? "var(--signal)" : "var(--band-ink-2)") : "var(--band-line)"}
                   style={{ transition: "fill 300ms, stroke 300ms" }}
                 />
                 <text

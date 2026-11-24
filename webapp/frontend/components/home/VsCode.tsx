@@ -58,7 +58,7 @@ export function VsCode() {
           </ul>
           <div className="mt-9 flex flex-wrap items-center gap-3" data-reveal>
             <MarketplaceButton />
-            <Link href="/docs/guides/vscode/" className="btn h-12 px-5 text-base">
+            <Link href="/docs/guides/vscode/" className="btn btn-secondary btn-lg">
               Read the VS Code guide
               <ArrowRight aria-hidden className="btn-icon size-4" />
             </Link>

@@ -32,10 +32,17 @@
   --color-band-ink-3: var(--band-ink-3);
   --color-header: var(--header-bg);
   --color-icon: var(--icon);
-  --color-lime: var(--lime);
-  --color-lime-deep: var(--lime-deep);
-  --color-lime-light: var(--lime-light);
-  --color-lime-pale: var(--lime-pale);
+  --color-signal: var(--signal);
+  --color-signal-deep: var(--signal-deep);
+  --color-signal-ink: var(--signal-ink);
+  --color-signal-soft: var(--signal-soft);
+  --color-coral: var(--coral-ui);
+  --color-coral-ink: var(--coral-ink);
+  --color-coral-soft: var(--coral-soft);
+  --color-sage: var(--sage-ui);
+  --color-sage-ink: var(--sage-ink);
+  --color-sage-soft: var(--sage-soft);
+  --color-raised: var(--surface-raised);
   --color-ok: var(--ok);
   --color-ok-bg: var(--ok-bg);
   --color-warn: var(--warn);
@@ -70,8 +77,8 @@
     font-feature-settings: "ss01", "cv11";
   }
   ::selection {
-    background: var(--lime);
-    color: #202321;
+    background: var(--selection-bg);
+    color: var(--selection-ink);
   }
   :focus-visible {
     outline: 2px solid var(--focus);
@@ -169,7 +176,10 @@
     content: "";
     width: 1.5rem;
     height: 2px;
-    background: var(--accent);
+    background: var(--signal);
+  }
+  .band .eyebrow::before {
+    background: var(--signal-light);
   }
 
   /* ---------------------------------------------------------- layout */
@@ -197,10 +207,10 @@
     --surface: var(--band-surface);
     --surface-sunken: var(--band-sunken);
     --link: var(--band-ink);
-    --link-hover: var(--lime-light);
-    --link-line: var(--lime);
+    --link-hover: var(--band-accent);
+    --link-line: var(--signal-light);
     --icon: var(--band-ink-2);
-    --focus: var(--lime);
+    --focus: var(--band-focus);
     --accent: var(--band-ink-3);
   }
 
@@ -261,7 +271,22 @@
   .btn:hover {
     transform: translateY(-1px);
     box-shadow: var(--sh-1);
-    border-color: var(--accent);
+    border-color: var(--signal);
+  }
+  .btn:focus-visible {
+    outline-offset: 2px;
+  }
+  /* sizes: sm for the header, lg for hero and closing actions (default is md, 46 px) */
+  .btn-sm {
+    min-height: 2.375rem;
+    padding: 0 0.9rem;
+    font-size: 0.9rem;
+    gap: 0.45rem;
+  }
+  .btn-lg {
+    min-height: 3rem;
+    padding: 0 1.25rem;
+    font-size: 1rem;
   }
   .btn:active {
     transform: translateY(0) scale(0.985);
@@ -273,27 +298,47 @@
   .btn:hover .btn-icon {
     transform: translateX(3px);
   }
-  /* the signature lime download button: unchanged colour, dark text */
+  /* the primary action (download): Signal Blue, white text (4.98:1, hover 6.47:1) */
   .btn-primary {
-    --btn-bg: var(--lime);
-    --btn-ink: #202321;
-    --btn-line: var(--lime-deep);
+    --btn-bg: var(--signal);
+    --btn-ink: #ffffff;
+    --btn-line: var(--signal);
   }
   .btn-primary:hover {
-    --btn-bg: var(--lime-light);
-    border-color: var(--lime-deep);
+    --btn-bg: var(--signal-deep);
+    border-color: var(--signal-deep);
   }
   .btn-primary:active {
-    --btn-bg: var(--lime-deep);
+    --btn-bg: #2b44b3;
   }
   .btn-solid {
     --btn-bg: var(--ink);
     --btn-ink: var(--bg);
     --btn-line: var(--ink);
   }
+  /* secondary = the plain .btn (surface, warm grey edge, Signal edge on hover) */
+  .btn-secondary {
+    --btn-bg: var(--surface);
+    --btn-ink: var(--ink);
+    --btn-line: var(--line-strong);
+  }
   .btn-ghost {
     --btn-bg: transparent;
     --btn-line: transparent;
+  }
+  .btn-ghost:hover {
+    --btn-bg: var(--surface-sunken);
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .band .btn:not(.btn-primary) {
+    --btn-bg: transparent;
+    --btn-ink: var(--band-ink);
+    --btn-line: var(--band-line);
+  }
+  .band .btn:not(.btn-primary):hover {
+    --btn-bg: var(--band-surface);
+    border-color: var(--band-accent);
   }
   .btn[aria-disabled="true"],
   .btn:disabled {
@@ -321,7 +366,7 @@
   .badge-warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
   .badge-err { background: var(--err-bg); color: var(--err); border-color: transparent; }
   .badge-info { background: var(--info-bg); color: var(--info); border-color: transparent; }
-  .badge-lime { background: var(--note-bg); color: var(--note-ink); border-color: transparent; }
+  .badge-signal { background: var(--note-bg); color: var(--note-ink); border-color: transparent; }
 
   /* ---------------------------------------------------------- panels */
   .panel {
@@ -558,7 +603,7 @@
 .vs-statusbar { display: flex; justify-content: space-between; padding: 4px 12px; background: #2a5a2f; color: #e9f5ea; font-size: 11px; }
 
 /* DEC-052 (owner, 2026-11-19): a very faint criss-cross travelling gradient behind the page.
-   Two soft glows (lime and silver) cross diagonally as the page scrolls, tied to the scroll
+   Two soft glows (Signal Blue and silver) cross diagonally as the page scrolls, tied to the scroll
    position (no scroll-jacking, no timers). Low contrast on purpose: it must never compete with
    the text. Browsers without scroll-driven animations get the glows at rest; reduced motion and
    forced colours turn it off. */
@@ -569,14 +614,14 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  --glow-a: color-mix(in oklab, var(--lime) 9%, transparent);
+  --glow-a: color-mix(in oklab, var(--signal) 7%, transparent);
   --glow-b: color-mix(in oklab, var(--ink) 4%, transparent);
   background:
     radial-gradient(38rem 30rem at var(--ga-x, 12%) var(--ga-y, 18%), var(--glow-a), transparent 70%),
     radial-gradient(34rem 28rem at var(--gb-x, 88%) var(--gb-y, 22%), var(--glow-b), transparent 70%);
 }
 [data-theme="dark"] body::before {
-  --glow-a: color-mix(in oklab, var(--lime) 6%, transparent);
+  --glow-a: color-mix(in oklab, var(--signal) 9%, transparent);
   --glow-b: color-mix(in oklab, var(--ink) 3%, transparent);
 }
 @property --ga-x { syntax: "<percentage>"; inherits: false; initial-value: 12%; }
@@ -607,7 +652,7 @@ body::after {
   transition: opacity 400ms ease;
   background: radial-gradient(
     22rem 22rem at var(--cursor-x, 50%) var(--cursor-y, 50%),
-    color-mix(in oklab, var(--lime) 11%, transparent),
+    color-mix(in oklab, var(--signal) 8%, transparent),
     transparent 70%
   );
 }
@@ -615,7 +660,7 @@ html[data-cursor="on"] body::after { opacity: 1; }
 [data-theme="dark"] body::after {
   background: radial-gradient(
     22rem 22rem at var(--cursor-x, 50%) var(--cursor-y, 50%),
-    color-mix(in oklab, var(--lime) 7%, transparent),
+    color-mix(in oklab, var(--signal) 10%, transparent),
     transparent 70%
   );
 }

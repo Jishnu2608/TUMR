@@ -7,6 +7,15 @@ release it drafts, so add that section before you run it. Changes not released y
 
 ## Unreleased
 
+## 0.1.35
+
+- **New look: Studio / Signal.** The app icon, installer and Start menu icon, the desktop app,
+  the VS Code extension and the agent plugins use the new colours: warm porcelain and ink, Signal
+  Blue for actions and focus, coral for build progress and warnings, sage for a healthy connection.
+  The logo keeps its shape (a phone showing an agent's prompt) on an ink tile with a blue prompt.
+- **VS Code extension 0.1.6:** the new icon and the new colours in the Mobile Preview.
+- The MCP bundle and the agent plugins carry the new icon.
+
 ## 0.1.34
 
 - **Updates find you.** The app now checks the project's GitHub Releases when it starts and

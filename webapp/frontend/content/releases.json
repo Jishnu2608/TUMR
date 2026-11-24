@@ -3,6 +3,51 @@
   "product": "Toolchain Universal Mobile Runtime",
   "releases": [
     {
+      "version": "0.1.34",
+      "channel": "stable",
+      "date": "2026-11-24",
+      "min_windows_build": 22000,
+      "signed": false,
+      "notes_url": "https://github.com/Jishnu2608/TUMR/releases/tag/v0.1.34",
+      "files": [
+        {
+          "kind": "installer",
+          "name": "Toolchain-Universal-Mobile-Runtime_0.1.34_x64-setup.exe",
+          "url": "https://github.com/Jishnu2608/TUMR/releases/download/v0.1.34/Toolchain-Universal-Mobile-Runtime_0.1.34_x64-setup.exe",
+          "size": 7633457,
+          "sha256": "0088b683ddfb2d3c87ed2b49dac9fe4bccf39dc223f0b9e3363a999d5fe69272"
+        },
+        {
+          "kind": "portable",
+          "name": "Toolchain-Universal-Mobile-Runtime_0.1.34_x64-portable.zip",
+          "url": "https://github.com/Jishnu2608/TUMR/releases/download/v0.1.34/Toolchain-Universal-Mobile-Runtime_0.1.34_x64-portable.zip",
+          "size": 10826686,
+          "sha256": "1c57b15c0d02c185d86b45e16536d0f7fe35fea4d6b79bef323ea587ee103536"
+        },
+        {
+          "kind": "cli",
+          "name": "tumr-cli_0.1.34_x64.zip",
+          "url": "https://github.com/Jishnu2608/TUMR/releases/download/v0.1.34/tumr-cli_0.1.34_x64.zip",
+          "size": 8028232,
+          "sha256": "4f36311a9deeca23d3f63d1baed44cdac31877abc0f6784522fd6928fe8f13f3"
+        },
+        {
+          "kind": "mcpb",
+          "name": "tumr-mcp_0.1.34_win32-x64.mcpb",
+          "url": "https://github.com/Jishnu2608/TUMR/releases/download/v0.1.34/tumr-mcp_0.1.34_win32-x64.mcpb",
+          "size": 49042,
+          "sha256": "25f08d86fce08e1cccab7f193488f47040c34e8689df215127752cc0eb85deb4"
+        },
+        {
+          "kind": "vscode",
+          "name": "tumr-vscode-0.1.5-win32-x64.vsix",
+          "url": "https://github.com/Jishnu2608/TUMR/releases/download/v0.1.34/tumr-vscode-0.1.5-win32-x64.vsix",
+          "size": 161685,
+          "sha256": "d39edfb0b246c6ff381d28883a128f51145d0eebbe806cce1bbcef6b9587a5ab"
+        }
+      ]
+    },
+    {
       "version": "0.1.33",
       "channel": "stable",
       "date": "2026-11-20",

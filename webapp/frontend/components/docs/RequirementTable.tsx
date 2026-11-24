@@ -5,7 +5,7 @@ type Level = "required" | "recommended" | "optional" | "project";
 type Row = { item: string; need: string; level: Level; notes?: string };
 
 const levels: Record<Level, { label: string; icon: typeof ShieldCheck; cls: string }> = {
-  required: { label: "Required", icon: ShieldCheck, cls: "badge-lime" },
+  required: { label: "Required", icon: ShieldCheck, cls: "badge-signal" },
   recommended: { label: "Recommended", icon: ThumbsUp, cls: "badge-info" },
   optional: { label: "Optional", icon: CircleDot, cls: "" },
   project: { label: "Per project", icon: FolderGit2, cls: "badge-info" },

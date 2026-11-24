@@ -40,12 +40,12 @@ export function SearchButton() {
         <button
           type="button"
           onClick={open}
-          className="inline-flex h-11 items-center gap-2 rounded-sm px-2.5 text-ink-2 transition-colors hover:bg-sunken hover:text-ink md:border md:border-line md:bg-surface md:pr-2 md:pl-3"
+          className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-sm px-2.5 text-ink-2 transition-colors hover:bg-sunken hover:text-ink md:border md:border-line md:bg-surface md:pr-1.5 md:pl-3"
           aria-label="Search the docs"
         >
           <SearchIcon aria-hidden className="size-[18px]" />
           <span className="hidden text-sm md:inline">Search</span>
-          <span className="kbd ml-3 hidden md:inline">Ctrl K</span>
+          <span className="kbd ml-2 hidden whitespace-nowrap xl:inline">Ctrl K</span>
         </button>
       ) : (
         <Link href="/docs/" className="inline-flex size-11 items-center justify-center rounded-sm text-ink-2 hover:bg-sunken" aria-label="Browse the docs">

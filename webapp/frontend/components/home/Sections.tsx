@@ -185,7 +185,7 @@ export function Agents({ tools }: { tools: ToolLite[] }) {
               </pre>
             ))}
           </div>
-          <Link href="/docs/guides/agents/" className="btn btn-primary mt-8 h-11 px-5" data-reveal>
+          <Link href="/docs/guides/agents/" className="btn btn-primary mt-8" data-reveal>
             Read the agent guide
             <ArrowRight aria-hidden className="btn-icon size-4" />
           </Link>
@@ -269,8 +269,8 @@ export function Privacy() {
           ))}
         </ul>
         <div className="mt-12 flex flex-wrap gap-3" data-reveal>
-          <Link href="/privacy/" className="btn h-11 px-5">Read the privacy notes</Link>
-          <Link href="/security/" className="btn btn-ghost h-11 px-5">How the runtime protects you</Link>
+          <Link href="/privacy/" className="btn btn-secondary">Read the privacy notes</Link>
+          <Link href="/security/" className="btn btn-ghost">How the runtime protects you</Link>
         </div>
       </Reveal>
     </section>
@@ -375,11 +375,11 @@ export function Close({ hasRelease }: { hasRelease: boolean }) {
           Windows 11 x64. Kotlin, Java, Flutter, React Native and Expo.
         </p>
         <div className="mt-9 flex flex-wrap justify-center gap-3" data-reveal>
-          <Link href="/download/" className="btn btn-primary h-12 px-5 text-base">
+          <Link href="/download/" className="btn btn-primary btn-lg">
             <Download aria-hidden className="size-4" />
             {hasRelease ? "Download for Windows" : "See downloads"}
           </Link>
-          <Link href="/docs/getting-started/" className="btn h-12 border-band-line bg-transparent px-5 text-base text-band-ink hover:bg-band-surface">
+          <Link href="/docs/getting-started/" className="btn btn-secondary btn-lg">
             <BookOpen aria-hidden className="size-4" />
             Read the getting-started guide
           </Link>

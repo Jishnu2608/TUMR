@@ -159,7 +159,7 @@ function Latest({ release }: { release: Release }) {
                 <h3 className="mt-4 font-semibold text-ink">{label.title}</h3>
                 <p className="t-desc mt-2 flex-1">{label.detail}</p>
                 <FileFacts file={f} release={release} compact />
-                <a href={f.url} download className="btn mt-5 h-11 self-start px-4">
+                <a href={f.url} download className="btn btn-secondary mt-5 self-start">
                   <Download aria-hidden className="size-4" />
                   Download {f.name}
                 </a>
@@ -217,9 +217,9 @@ function VsCodeExtension() {
         <div className="flex flex-wrap items-center gap-3">
           <MarketplaceButton />
           {ovsx.published ? (
-            <a className="btn h-12 px-5 text-base" href={ovsx.url} rel="noopener">Open VSX</a>
+            <a className="btn btn-secondary btn-lg" href={ovsx.url} rel="noopener">Open VSX</a>
           ) : (
-            <span className="btn h-12 cursor-not-allowed px-5 text-base opacity-70" aria-disabled="true">Open VSX · coming soon</span>
+            <span className="btn btn-secondary btn-lg cursor-not-allowed opacity-70" aria-disabled="true">Open VSX · coming soon</span>
           )}
         </div>
         <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -285,8 +285,8 @@ function NoRelease() {
         ))}
       </ul>
       <div className="mt-8 flex flex-wrap gap-3">
-        <Link href="/docs/requirements/" className="btn h-11 px-5">Check the requirements</Link>
-        <Link href="/releases/" className="btn btn-ghost h-11 px-5">See releases</Link>
+        <Link href="/docs/requirements/" className="btn btn-secondary">Check the requirements</Link>
+        <Link href="/releases/" className="btn btn-ghost">See releases</Link>
       </div>
     </section>
   );

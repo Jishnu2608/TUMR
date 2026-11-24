@@ -36,12 +36,12 @@ const OUCH = ["Hey!", "Oof — nice throw.", "Ow, that's a merge conflict.", "Mi
 
 type Kind = "braces" | "bug" | "coffee" | "cog" | "git" | "terminal" | "play" | "phone";
 const CHIPS: { kind: Kind; Icon: LucideIcon; c: string; x: number; y: number; s: number; d: number; say: string }[] = [
-  { kind: "braces", Icon: Braces, c: "var(--lime)", x: 10, y: 30, s: 50, d: 1.2, say: "Curly braces: my favourite hugs." },
+  { kind: "braces", Icon: Braces, c: "var(--sage)", x: 10, y: 30, s: 50, d: 1.2, say: "Curly braces: my favourite hugs." },
   { kind: "bug", Icon: Bug, c: "var(--c-coral)", x: 76, y: 20, s: 46, d: 0.8, say: "A bug! Catch it if you can." },
   { kind: "coffee", Icon: Coffee, c: "var(--c-sun)", x: 18, y: 62, s: 44, d: 1.0, say: "Refill! Thank you." },
   { kind: "cog", Icon: Cog, c: "var(--c-sky)", x: 80, y: 50, s: 52, d: 1.4, say: "Gradle is thinking. Give it a second." },
   { kind: "git", Icon: GitBranch, c: "var(--c-pink)", x: 8, y: 86, s: 40, d: 0.6, say: "New branch. Commit early, commit often." },
-  { kind: "terminal", Icon: Terminal, c: "var(--lime)", x: 58, y: 80, s: 42, d: 0.9, say: "tumr run — that's the whole trick." },
+  { kind: "terminal", Icon: Terminal, c: "var(--sage)", x: 58, y: 80, s: 42, d: 0.9, say: "tumr run — that's the whole trick." },
   { kind: "play", Icon: Play, c: "var(--c-sky)", x: 84, y: 82, s: 38, d: 0.7, say: "Press play — dance break!" },
   { kind: "phone", Icon: Smartphone, c: "var(--c-sun)", x: 40, y: 92, s: 36, d: 0.5, say: "That's my cousin." },
 ];
@@ -783,7 +783,7 @@ export function Stage({ step }: { step: string }) {
         <path className="branch" ref={branch} />
         <path className="rope" ref={rope} />
         <g ref={trolley}>
-          <rect x="-15" y="-9" width="30" height="14" rx="5" className="f-lime" />
+          <rect x="-15" y="-9" width="30" height="14" rx="5" className="f-sage" />
           <circle cx="-7" cy="-9" r="3.5" className="f-ink" />
           <circle cx="7" cy="-9" r="3.5" className="f-ink" />
         </g>
@@ -793,15 +793,15 @@ export function Stage({ step }: { step: string }) {
           <rect x="-4" y="-6" width="8" height="14" rx="4" className="s-rope" fill="none" strokeWidth="2.4" />
           <g ref={body}>
             <path d="M-11 112 L-11 127 M11 112 L11 127" className="s-coral-d" strokeWidth="6" strokeLinecap="round" />
-            <ellipse cx="-13" cy="130" rx="8.5" ry="4.8" className="f-lime" />
-            <ellipse cx="13" cy="130" rx="8.5" ry="4.8" className="f-lime" />
+            <ellipse cx="-13" cy="130" rx="8.5" ry="4.8" className="f-sage" />
+            <ellipse cx="13" cy="130" rx="8.5" ry="4.8" className="f-sage" />
             <path d="M-30 36 C-30 8 30 8 30 36" className="s-sky" strokeWidth="5" fill="none" strokeLinecap="round" />
             <rect x="-28" y="18" width="56" height="96" rx="14" className="f-coral" />
             <rect x="-22" y="26" width="44" height="68" rx="8" className="f-screen" />
             <circle cx="0" cy="31" r="2" fill="#3a403c" />
             <g ref={eyes}>
-              <ellipse cx="-9" cy="52" rx="5" ry="6.5" className="f-lime" />
-              <ellipse cx="9" cy="52" rx="5" ry="6.5" className="f-lime" />
+              <ellipse cx="-9" cy="52" rx="5" ry="6.5" className="f-sage" />
+              <ellipse cx="9" cy="52" rx="5" ry="6.5" className="f-sage" />
               <g ref={pupils}>
                 <circle cx="-9" cy="53" r="2.5" className="f-ink" />
                 <circle cx="9" cy="53" r="2.5" className="f-ink" />
@@ -809,7 +809,7 @@ export function Stage({ step }: { step: string }) {
             </g>
             <circle cx="-15" cy="65" r="3" className="f-pink" opacity="0.8" />
             <circle cx="15" cy="65" r="3" className="f-pink" opacity="0.8" />
-            <path d="M-6 67 Q0 73 6 67" className="s-lime" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+            <path d="M-6 67 Q0 73 6 67" className="s-sage" strokeWidth="2.2" fill="none" strokeLinecap="round" />
             <rect x="-7" y="102" width="14" height="3" rx="1.5" fill="#000" opacity="0.2" />
             <rect x="-36" y="28" width="9" height="18" rx="4" className="f-sky" />
             <rect x="27" y="28" width="9" height="18" rx="4" className="f-sky" />

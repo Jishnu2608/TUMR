@@ -65,18 +65,18 @@ export function Hero({ hasRelease, toolCount }: { hasRelease: boolean; toolCount
             Local runtime for Windows 11
           </p>
           <h1 id="hero-title" className="t-display mt-6 max-w-[14ch]" data-enter>
-            The Android runtime for <span className="whitespace-nowrap bg-[linear-gradient(var(--lime),var(--lime))] bg-[length:100%_0.12em] bg-[position:0_92%] bg-no-repeat">AI coding agents</span>
+            The Android runtime for <span className="whitespace-nowrap bg-[linear-gradient(var(--signal),var(--signal))] bg-[length:100%_0.12em] bg-[position:0_92%] bg-no-repeat">AI coding agents</span>
           </h1>
           <p className="t-lead mt-7 max-w-[34rem]" data-enter>
             It sets up the Android toolchain, runs the emulator, docks your running app beside Claude Code or Codex, and hands
             the agent the screen, the errors and the controls.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-3" data-enter>
-            <Link href="/download/" className="btn btn-primary h-12 px-5 text-base">
+            <Link href="/download/" className="btn btn-primary btn-lg">
               {hasRelease ? "Download for Windows" : "See downloads"}
               <ArrowRight aria-hidden className="btn-icon size-4" />
             </Link>
-            <Link href="/docs/getting-started/" className="btn h-12 px-5 text-base">
+            <Link href="/docs/getting-started/" className="btn btn-secondary btn-lg">
               <BookOpen aria-hidden className="size-4" />
               Read the getting-started guide
             </Link>
