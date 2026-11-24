@@ -69,23 +69,39 @@ jobs:
       - name: Test the extension
         run: npm --prefix apps/vscode test
 
-      # the Marketplace refuses a version it already has: stop here with a clear message instead
+      # each store refuses a version it already has: stop here with a clear message instead. Only
+      # the stores this run publishes to are checked, so a run that failed half way (published to
+      # the Marketplace, not to Open VSX) can be finished with the other store alone.
       - name: Check the version and its release notes
         if: ${{ !inputs.dry_run }}
         shell: pwsh
         working-directory: apps/vscode
+        env:
+          TARGET: ${{ inputs.target }}
         run: |
           $m = Get-Content package.json -Raw | ConvertFrom-Json
           $notes = Get-Content CHANGELOG.md -Raw
           if ($notes -notmatch "(?m)^## $([regex]::Escape($m.version))\s*$") {
             throw "CHANGELOG.md has no '## $($m.version)' entry: bump the version and describe the change first"
           }
-          # not listed yet (first publish) or offline: nothing to compare with
-          $listed = npx --no-install vsce show "$($m.publisher).$($m.name)" --json 2>$null
-          if ($LASTEXITCODE -eq 0 -and $listed) {
-            $versions = @(($listed | Out-String | ConvertFrom-Json).versions.version)
-            if ($versions -contains $m.version) {
-              throw "Version $($m.version) is already on the Visual Studio Marketplace: bump it in package.json"
+          if ($env:TARGET -in 'both', 'marketplace') {
+            # not listed yet (first publish) or offline: nothing to compare with
+            $listed = npx --no-install vsce show "$($m.publisher).$($m.name)" --json 2>$null
+            if ($LASTEXITCODE -eq 0 -and $listed) {
+              $versions = @(($listed | Out-String | ConvertFrom-Json).versions.version)
+              if ($versions -contains $m.version) {
+                throw "Version $($m.version) is already on the Visual Studio Marketplace: bump it in package.json, or publish to openvsx only if only Open VSX is missing it"
+              }
+            }
+          }
+          if ($env:TARGET -in 'both', 'openvsx') {
+            try {
+              $o = Invoke-RestMethod "https://open-vsx.org/api/$($m.publisher)/$($m.name)/$($m.version)" -ErrorAction Stop
+              if ($o.version -eq $m.version) {
+                throw "Version $($m.version) is already on Open VSX: bump it in package.json, or publish to marketplace only if only the Marketplace is missing it"
+              }
+            } catch [Microsoft.PowerShell.Commands.HttpResponseException] {
+              # 404: not on Open VSX yet
             }
           }
           $global:LASTEXITCODE = 0

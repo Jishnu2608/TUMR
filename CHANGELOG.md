@@ -7,12 +7,19 @@ release it drafts, so add that section before you run it. Changes not released y
 
 ## Unreleased
 
-- The phone window docks to the right of the screen when an agent starts the app, the same as
-  `tumr run`; in VS Code the Mobile Preview opens to the right of the code.
-- Update check on by default: at start the app reads the release list of the project's GitHub
-  Releases and offers **Update now**. Set `manifest_url = "off"` under `[update]` in
-  `%USERPROFILE%\.tumr\config.toml` to turn it off.
-- Renaming emulators made before the rename retries when Windows briefly holds the folder.
+## 0.1.34
+
+- **Updates find you.** The app now checks the project's GitHub Releases when it starts and
+  offers **Update now**; nothing is installed without your click, and only the small release list
+  is downloaded. Turn it off with `manifest_url = "off"` under `[update]` in
+  `%USERPROFILE%\.tumr\config.toml`. From this version on, new releases reach you by themselves.
+- **Phone on the right.** When a coding agent starts the app, the phone window docks to the right
+  of the screen, the same as `tumr run`.
+- **VS Code extension 0.1.5:** offers **Download the runtime** when the runtime is not installed,
+  and the Mobile Preview opens to the right of the code. Now on the VS Code Marketplace and Open VSX.
+- Emulators made before the rename to `tumr` are renamed reliably even when Windows briefly holds
+  their folder.
+- The MCP bundle and the agent plugins link the latest release.
 
 ## 0.1.33
 
