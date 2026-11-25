@@ -16,6 +16,8 @@
   --signal: #4263eb;        /* Signal Blue: CTA fill (white text 4.98:1), pulses, active marks */
   --signal-deep: #3451d1;   /* hover / pressed fill, blue text on light grounds (5.7:1) */
   --signal-light: #6a86f2;  /* soft accents on dark grounds */
+  --signal-on: #ffffff;     /* text on a Signal Blue fill */
+  --signal-press: #2b44b3;  /* pressed Signal Blue button */
   --coral: #e56b4a;         /* Build Coral: large marks only; text uses --coral-ink */
   --sage: #a8b8a0;          /* Circuit Sage: large marks only; text uses --sage-ink */
   --porcelain: #f2f0ea;
@@ -85,6 +87,23 @@
   --band-surface: #2c333b;
   --band-sunken: #1a1e23;
   --band-focus: #7e95f4;
+  /* R5 hero device showcase: device bodies */
+  --phone-body: #2c333b;
+  --phone-edge: #41474e;
+  --phone-screen: #101318;
+  --phone-glare: rgb(255 255 255 / 0.1);
+  --studio-shadow: rgb(32 37 43 / 0.22);
+  /* the sample travel app inside the devices keeps its own light look in both site themes */
+  --app-bg: #faf8f3;
+  --app-card: #ffffff;
+  --app-chip: #eeebe3;
+  --app-ink: #1d232a;
+  --app-muted: #6b7178;
+  --app-line: #e4e0d6;
+  --app-accent: #bb4a27;
+  --app-accent-ink: #ffffff;
+  --app-star: #e0a43a;
+  --app-scrim: rgb(20 24 28 / 0.62);
   --code-bg: #eae8e0;
   --code-ink: #20252b;
   --sh-1: 0 1px 2px rgb(32 37 43 / 0.05), 0 4px 14px rgb(32 37 43 / 0.05);
@@ -160,6 +179,12 @@
   --band-surface: #343c44;
   --band-sunken: #20252b;
   --band-focus: #7e95f4;
+  /* R5 hero device showcase: device bodies */
+  --phone-body: #14171b;
+  --phone-edge: #4a535c;
+  --phone-screen: #101318;
+  --phone-glare: rgb(255 255 255 / 0.08);
+  --studio-shadow: rgb(0 0 0 / 0.45);
   --code-bg: #2c333b;
   --code-ink: #f2f0ea;
   --sh-1: 0 1px 2px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.02);
@@ -231,6 +256,12 @@
     --band-surface: #343c44;
     --band-sunken: #20252b;
     --band-focus: #7e95f4;
+    /* R5 hero device showcase: device bodies */
+    --phone-body: #14171b;
+    --phone-edge: #4a535c;
+    --phone-screen: #101318;
+    --phone-glare: rgb(255 255 255 / 0.08);
+    --studio-shadow: rgb(0 0 0 / 0.45);
     --code-bg: #2c333b;
     --code-ink: #f2f0ea;
     --sh-1: 0 1px 2px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.02);

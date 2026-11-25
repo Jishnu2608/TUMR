@@ -1,7 +1,7 @@
 # Requirements
 
 ## Your PC
-| | Needed | Notes |
+| Item | Needed | Notes |
 |---|---|---|
 | Windows | Windows 11, x64 | Windows 10 and Arm PCs are not supported yet |
 | CPU virtualization | VT-x / AMD-V **enabled in the firmware (BIOS/UEFI)** | Task Manager → Performance → CPU shows "Virtualization: Enabled". If disabled, turn it on in the firmware settings — software cannot |

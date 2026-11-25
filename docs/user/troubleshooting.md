@@ -8,7 +8,7 @@ Start with `tumr problems` (or ☰ in the preview window). Every problem has a *
 
 *Category: Build*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | `tumr problems` lists an error with a file and line from `kotlinc`, `javac`, AAPT, Dart or Babel. |
 | Likely cause | The code or a resource file does not compile. |
@@ -22,7 +22,7 @@ Start with `tumr problems` (or ☰ in the preview window). Every problem has a *
 
 *Category: Runtime*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | A Flutter `EXCEPTION CAUGHT BY …`, an `Unhandled Exception` or a JavaScript error. |
 | Likely cause | An exception in the app's code that the framework caught. |
@@ -34,7 +34,7 @@ Start with `tumr problems` (or ☰ in the preview window). Every problem has a *
 
 *Category: Crash*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | The app disappears from the screen; `tumr problems` shows a crash or an ANR. |
 | Likely cause | An uncaught Java or Kotlin exception, a native crash, or the app not responding. |
@@ -48,7 +48,7 @@ Start with `tumr problems` (or ☰ in the preview window). Every problem has a *
 
 *Category: Environment*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | `SDK location not found`, `Failed to find target …` or `Failed to find Platform SDK …`. |
 | Likely cause | An Android SDK package the project needs is not installed. |
@@ -60,7 +60,7 @@ Start with `tumr problems` (or ☰ in the preview window). Every problem has a *
 
 *Category: Environment*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | `licences have not been accepted`. |
 | Likely cause | An SDK package's licence was not accepted yet. |
@@ -72,7 +72,7 @@ Start with `tumr problems` (or ☰ in the preview window). Every problem has a *
 
 *Category: Environment*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | `requires Java 17` or `Unsupported class file major version`. |
 | Likely cause | The JDK does not match the project's Gradle or Android Gradle Plugin. |
@@ -84,7 +84,7 @@ Start with `tumr problems` (or ☰ in the preview window). Every problem has a *
 
 *Category: Environment*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | `Java heap space` or `Gradle build daemon disappeared unexpectedly`. |
 | Likely cause | Gradle's memory limit is too low for the project. |
@@ -96,7 +96,7 @@ Start with `tumr problems` (or ☰ in the preview window). Every problem has a *
 
 *Category: Environment*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | `hardware acceleration` or `WHPX` errors when the device boots. |
 | Likely cause | CPU virtualization is off in the firmware, or Windows Hypervisor Platform is off. |
@@ -108,7 +108,7 @@ Start with `tumr problems` (or ☰ in the preview window). Every problem has a *
 
 *Category: Environment*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | `address already in use` or port 8081 busy. |
 | Likely cause | Another Metro or development server is running. |
@@ -120,7 +120,7 @@ Start with `tumr problems` (or ☰ in the preview window). Every problem has a *
 
 *Category: Environment*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | `filename … too long`, or `ninja: error: Stat(…): Filename longer than 260 characters` from `buildCMakeDebug`. |
 | Likely cause | The Windows path limit of 260 characters. React Native native modules (for example `react-native-safe-area-context`) compile C++ files into very deep `android/app/.cxx` paths, and ninja ignores the long-paths setting. |
@@ -134,7 +134,7 @@ Start with `tumr problems` (or ☰ in the preview window). Every problem has a *
 
 *Category: Network*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | `Could not GET …`, `UnknownHostException`, `PKIX path building failed`, `ENOTFOUND` or `Could not connect to development server`. |
 | Likely cause | No connection, a proxy, or a company proxy inspecting TLS. |
@@ -148,7 +148,7 @@ Start with `tumr problems` (or ☰ in the preview window). Every problem has a *
 
 *Category: Device*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | `device offline`, `unauthorized`, `INSTALL_FAILED_INSUFFICIENT_STORAGE` or `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. |
 | Likely cause | The emulator stopped answering, is full, or holds an older copy signed with another key. |
@@ -164,7 +164,7 @@ Start with `tumr agent doctor`: it checks every connected agent's config entry, 
 
 *Category: Environment*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | `/mcp` (Claude Code, Codex), Cursor's MCP settings, Antigravity's MCP Servers or VS Code's server list show no `tumr` server, or it is switched off. |
 | Likely cause | The entry is missing, the agent has not been restarted since setup, or the project's server is waiting for your approval. |
@@ -176,7 +176,7 @@ Start with `tumr agent doctor`: it checks every connected agent's config entry, 
 
 *Category: Environment*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | The agent reports that the `tumr` server failed or closed; `tumr agent doctor` says *program not found*, *points at another tumr.exe* or *no token for client*. |
 | Likely cause | The runtime moved (another install folder or the portable ZIP), or the agent's client was removed. |
@@ -188,7 +188,7 @@ Start with `tumr agent doctor`: it checks every connected agent's config entry, 
 
 *Category: Environment*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | `… is not plain JSON (…); comments and trailing commas are not supported, edit it by hand` |
 | Likely cause | The agent's config file has comments or a syntax error. VS Code allows comments in `mcp.json`; the runtime never rewrites such a file, so your comments are not lost. |
@@ -200,7 +200,7 @@ Start with `tumr agent doctor`: it checks every connected agent's config entry, 
 
 *Category: Environment*
 
-| | |
+| Field | Details |
 |---|---|
 | Symptoms | A tool call to `run_project` or `switch_device` hangs for up to two minutes, then fails. |
 | Likely cause | The runtime asks you before an agent runs a new project folder or switches the device, and nobody answered. |

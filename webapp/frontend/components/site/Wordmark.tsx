@@ -31,7 +31,7 @@ export function Wordmark() {
     <span className="inline-flex items-center gap-2.5 font-semibold tracking-[-0.02em] text-ink">
       <LogoMark className="size-7" />
       <span className="hidden whitespace-nowrap sm:inline">{site.name}</span>
-      <span className="sm:hidden" aria-label={site.name}>
+      <span className="sm:hidden">
         {site.shortName}
       </span>
     </span>

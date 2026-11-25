@@ -3,7 +3,7 @@ import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import rehypePrettyCode from "rehype-pretty-code";
 import { createCssVariablesTheme } from "shiki";
-import type { ComponentProps, ReactNode } from "react";
+import { Children, isValidElement, type ComponentProps, type ReactElement, type ReactNode } from "react";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/CodeBlock";
 import { Callout } from "@/components/docs/Callout";
@@ -41,12 +41,50 @@ function Img({ src, alt, ...rest }: ComponentProps<"img">) {
   return <img src={s} alt={alt ?? ""} loading="lazy" className="my-6 rounded-md border border-line shadow-1" {...rest} />;
 }
 
+/**
+ * A unique name for each table's scroll region: its column headings plus the start of its first
+ * row ("Table: Field, Details. Symptoms: tumr problems lists…"), since a page can hold several
+ * tables with the same headings.
+ */
+function tableLabel(children: ReactNode): string {
+  const heads: string[] = [];
+  const first: string[] = [];
+  let rows = 0;
+  const text = (n: ReactNode): string => {
+    let t = "";
+    Children.forEach(n, (c) => {
+      if (typeof c === "string" || typeof c === "number") t += String(c);
+      else if (isValidElement(c)) t += text((c as ReactElement<{ children?: ReactNode }>).props.children);
+    });
+    return t;
+  };
+  const walk = (n: ReactNode, where: "head" | "body" | null) => {
+    Children.forEach(n, (c) => {
+      if (!isValidElement(c)) return;
+      const el = c as ReactElement<{ children?: ReactNode }>;
+      if (el.type === "thead") return walk(el.props.children, "head");
+      if (el.type === "tbody") return walk(el.props.children, "body");
+      if (el.type === "tr" && where === "body") {
+        rows++;
+        if (rows === 1) Children.forEach(el.props.children, (cell) => first.push(text(cell).trim()));
+        return;
+      }
+      if (el.type === "th" && where === "head") return void heads.push(text(el.props.children).trim());
+      walk(el.props.children, where);
+    });
+  };
+  walk(children, null);
+  const head = heads.filter(Boolean).join(", ");
+  const row = first.filter(Boolean).join(": ").slice(0, 60);
+  return ["Table", head && `: ${head}`, row && `. ${row}${row.length === 60 ? "…" : ""}`].filter(Boolean).join("");
+}
+
 const components = {
   a: A,
   img: Img,
   pre: (p: ComponentProps<"pre">) => <CodeBlock {...p} />,
   table: (p: ComponentProps<"table">) => (
-    <div className="table-wrap" tabIndex={0} role="region" aria-label="Table">
+    <div className="table-wrap" tabIndex={0} role="region" aria-label={tableLabel(p.children)}>
       <table {...p} />
     </div>
   ),

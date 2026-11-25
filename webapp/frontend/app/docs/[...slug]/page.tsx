@@ -80,7 +80,7 @@ export default async function DocPage({ params }: Props) {
       </article>
 
       {items.length > 1 && (
-        <aside className="hidden xl:block">
+        <aside aria-label="On this page" className="hidden xl:block">
           <nav aria-label="On this page" className="sticky top-[calc(var(--header-h)+1.5rem)] text-sm">
             <p className="t-label">On this page</p>
             <ul className="mt-3 grid gap-1.5 border-l border-line">

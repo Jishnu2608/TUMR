@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, Menu, X } from "lucide-react";
-import { nav } from "@/lib/site";
+import { nav, site } from "@/lib/site";
 import { Wordmark } from "./Wordmark";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { SearchButton } from "./Search";
@@ -53,7 +53,14 @@ export function SiteHeader({ hasRelease }: { hasRelease: boolean }) {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-header/90 backdrop-blur-md supports-[backdrop-filter]:bg-header/80">
       <div className="wrap flex h-[var(--header-h)] items-center gap-3 sm:gap-6">
-        <Link href="/" className="shrink-0 rounded-sm" aria-label="Home">
+        {/* on the home page itself the logo does not prefetch: that pulled the page's own 76 KB RSC
+            payload and parsed it on the main thread during load (WEB-017) */}
+        <Link
+          href="/"
+          prefetch={path === "/" ? false : undefined}
+          className="shrink-0 rounded-sm"
+          aria-label={`${site.shortName}, ${site.name}, home`}
+        >
           <Wordmark />
         </Link>
 
@@ -85,7 +92,7 @@ export function SiteHeader({ hasRelease }: { hasRelease: boolean }) {
         <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
           <SearchButton />
           <ThemeToggle />
-          <Link href="/download/" className="btn btn-primary btn-sm ml-2 hidden sm:inline-flex">
+          <Link href="/download/" className="btn btn-primary btn-sm ml-2 hidden md:inline-flex">
             {cta}
             <ArrowRight aria-hidden className="btn-icon size-4" />
           </Link>

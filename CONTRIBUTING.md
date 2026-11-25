@@ -19,7 +19,7 @@ powershell -File scripts\ci-local.ps1      # what CI runs: fmt, clippy (pedantic
 The desktop UI alone: `npm --prefix apps/desktop/ui run dev` (sample data in a browser).
 
 ## Repository layout
-| Folder | |
+| Folder | What it holds |
 |---|---|
 | `crates/` | The Runtime Core and its parts (`tumr-core`, `-api`, `-storage`, `-env`, `-resolver`, `-installer`, `-supervisor`, `-device`, `-session`, `-stream`, `-diagnostics`, `-mcp`, `-platform`) |
 | `adapters/` | The adapter contract (`sdk`) and the Gradle, Flutter and React Native adapters |

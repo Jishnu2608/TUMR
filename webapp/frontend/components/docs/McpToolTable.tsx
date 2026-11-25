@@ -25,7 +25,7 @@ export function McpToolTable() {
         return (
           <section key={t.name} id={t.name} className="scroll-mt-24 px-5 py-5 sm:px-6">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <h3 className="font-mono text-[0.95rem] font-semibold text-ink">{t.name}</h3>
+              <h2 className="font-mono text-[0.95rem] font-semibold text-ink">{t.name}</h2>
               {t.annotations.readOnlyHint ? <Status kind="info">reads only</Status> : <Status kind="pending">acts on the device or app</Status>}
             </div>
             <p className="mt-2 text-[0.95rem] leading-relaxed text-ink-2">{t.description}</p>

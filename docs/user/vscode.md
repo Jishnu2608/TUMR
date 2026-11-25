@@ -24,7 +24,7 @@ Saved files apply themselves while the app runs: Flutter hot reload, React Nativ
 The **Problems** panel lists the running app's build errors, runtime errors and crashes with file and line, marked *Toolchain Universal Mobile Runtime*; problems of the toolchain or the device say *(environment)*. The status bar shows the running app; click it for all actions.
 
 ## Settings
-| Setting | Default | |
+| Setting | Default | What it does |
 |---|---|---|
 | `tumr.path` | empty | Full path of `tumr.exe` |
 | `tumr.openPreviewOnRun` | `true` | Open the Mobile Preview when a run starts |

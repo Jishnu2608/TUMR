@@ -67,7 +67,7 @@ export default function DownloadPage() {
         {older.length === 0 ? (
           <p className="t-desc mt-3">No earlier releases.</p>
         ) : (
-          <div className="table-wrap mt-6" role="region" aria-label="Earlier releases" tabIndex={0}>
+          <div className="table-wrap mt-6" role="region" aria-label="Earlier releases, table" tabIndex={0}>
             <table className="w-full min-w-[36rem] text-left text-[0.95rem]">
               <thead>
                 <tr className="border-b border-line-strong">
@@ -133,11 +133,11 @@ function Latest({ release }: { release: Release }) {
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-4">
-          <span className="dl-locked btn btn-primary h-12 px-5 text-base" aria-disabled="true">
+          <span className="dl-locked btn btn-wrap btn-primary min-h-12 px-5 text-base" aria-disabled="true">
             <Download aria-hidden className="size-4" />
             Download {installer.name}
           </span>
-          <a className="dl-open btn btn-primary h-12 px-5 text-base" href={installer.url} download>
+          <a className="dl-open btn btn-wrap btn-primary min-h-12 px-5 text-base" href={installer.url} download>
             <Download aria-hidden className="size-4" />
             Download {installer.name}
           </a>
@@ -154,12 +154,12 @@ function Latest({ release }: { release: Release }) {
             const Icon = icons[f.kind] ?? FileArchive;
             const label = fileLabel[f.kind] ?? { title: f.kind, detail: "" };
             return (
-              <li key={f.name} className="flex flex-col rounded-lg border border-line bg-surface p-6">
+              <li key={f.name} className="flex min-w-0 flex-col rounded-lg border border-line bg-surface p-6">
                 <Icon aria-hidden className="size-5 text-icon" strokeWidth={1.75} />
                 <h3 className="mt-4 font-semibold text-ink">{label.title}</h3>
                 <p className="t-desc mt-2 flex-1">{label.detail}</p>
                 <FileFacts file={f} release={release} compact />
-                <a href={f.url} download className="btn btn-secondary mt-5 self-start">
+                <a href={f.url} download className="btn btn-wrap btn-secondary mt-5 self-start">
                   <Download aria-hidden className="size-4" />
                   Download {f.name}
                 </a>

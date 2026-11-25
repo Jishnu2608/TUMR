@@ -41,15 +41,18 @@ export function SearchButton() {
           type="button"
           onClick={open}
           className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-sm px-2.5 text-ink-2 transition-colors hover:bg-sunken hover:text-ink md:border md:border-line md:bg-surface md:pr-1.5 md:pl-3"
-          aria-label="Search the docs"
+          aria-keyshortcuts="Control+K"
         >
-          <SearchIcon aria-hidden className="size-[18px]" />
-          <span className="hidden text-sm md:inline">Search</span>
-          <span className="kbd ml-2 hidden whitespace-nowrap xl:inline">Ctrl K</span>
+          {/* the name is the visible text ("Search") plus " the docs" for screen readers; the shortcut
+              is announced from aria-keyshortcuts, so the label and the visible text always match */}
+          <SearchIcon aria-hidden className="size-[18px] shrink-0" />
+          <span className="sr-only text-sm md:not-sr-only">Search</span>
+          <span className="sr-only"> the docs</span>
+          <span aria-hidden className="kbd ml-2 hidden whitespace-nowrap xl:inline">Ctrl K</span>
         </button>
       ) : (
         <Link href="/docs/" className="inline-flex size-11 items-center justify-center rounded-sm text-ink-2 hover:bg-sunken" aria-label="Browse the docs">
-          <SearchIcon aria-hidden className="size-[18px]" />
+          <SearchIcon aria-hidden className="size-[18px] shrink-0" />
         </Link>
       )}
       <SearchDialog ref={dialog} />
@@ -116,7 +119,7 @@ function SearchDialog({ ref }: { ref: React.RefObject<HTMLDialogElement | null> 
     <dialog
       ref={ref}
       aria-label="Search"
-      className="m-auto mt-[12vh] w-[min(40rem,calc(100vw-2rem))] rounded-md border border-line bg-surface p-0 text-ink shadow-2 backdrop:bg-[rgb(21_23_22/0.5)] backdrop:backdrop-blur-[2px]"
+      className="m-auto mt-[12vh] w-[min(40rem,calc(100vw-2rem))] rounded-md border border-line bg-surface p-0 text-ink shadow-2 backdrop:bg-[color-mix(in_oklab,var(--ink-brand)_55%,transparent)] backdrop:backdrop-blur-[2px]"
       onClick={(e) => e.target === e.currentTarget && ref.current?.close()}
     >
       <div className="flex items-center gap-3 border-b border-line px-4">

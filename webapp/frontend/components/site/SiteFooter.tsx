@@ -47,7 +47,7 @@ export function SiteFooter() {
         </div>
         {columns.map((c, i) => (
           <nav key={c.title} aria-label={c.title} className={i === 0 ? "md:col-span-2 md:col-start-7" : "md:col-span-2"}>
-            <p className="t-meta mb-3 text-[0.75rem] uppercase tracking-[0.08em]">{c.title}</p>
+            <p className="mb-3 text-sm font-medium text-ink">{c.title}</p>
             <ul className="space-y-1">
               {c.links.map((l) => (
                 <li key={l.href}>
@@ -66,13 +66,10 @@ export function SiteFooter() {
             Android is a trademark of Google LLC; this project is not affiliated with or endorsed by Google.
             Product names are trademarks of their owners.
           </p>
-          <p className="flex shrink-0 items-center gap-3">
+          <p className="flex shrink-0 items-center gap-5">
             <Link href="/licences/" className="link">
               {site.licence}
             </Link>
-            <span aria-hidden className="text-ink-3">
-              ·
-            </span>
             <a href={site.repository} className="link" rel="noreferrer">
               Source on GitHub
             </a>
