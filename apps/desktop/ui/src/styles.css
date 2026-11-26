@@ -318,11 +318,22 @@ pre.diff { margin: 4px 0 8px; max-height: 220px; overflow: auto; background: var
 .picker .picked { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
 .picker .picked code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 46ch; }
 
-/* UPD-001: update available */
-.update { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px;
-  padding: 9px 12px; border: 1px solid var(--note-line); border-radius: 10px; background: var(--note-bg); color: var(--note-ink); font-size: 13.5px; }
-.update .muted { color: var(--note-ink); opacity: 0.8; }
-.update .update-actions { display: inline-flex; align-items: center; gap: 10px; }
+/* UPD-004: update available, a toast in the main window and the phone window */
+.upd-toast { position: fixed; right: 16px; bottom: 16px; z-index: 50; width: min(400px, calc(100vw - 32px));
+  padding: 12px 14px; border: 1px solid var(--note-line); border-radius: 10px; background: var(--panel); color: var(--text);
+  box-shadow: var(--sh-1), 0 12px 32px rgba(0, 0, 0, 0.18); font-size: 13.5px; animation: upd-in 220ms ease-out; }
+.upd-toast.compact { right: 8px; left: 8px; bottom: 8px; width: auto; padding: 10px 12px; font-size: 12.5px; }
+.upd-toast p { margin: 0; }
+.upd-title { padding-right: 4px; }
+.upd-muted { color: var(--muted); }
+.upd-toast .upd-notes { margin-top: 2px; padding: 0; font-size: inherit; }
+.upd-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.upd-toast.compact .upd-actions button { padding: 5px 9px; font-size: 12px; }
+.upd-terminal { margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--note-bg); color: var(--note-ink); }
+.upd-terminal code { display: inline-block; margin-top: 4px; font-family: var(--code), ui-monospace, monospace; font-weight: 600; user-select: all; }
+.upd-error { margin-top: 8px !important; color: var(--warn); }
+@keyframes upd-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .upd-toast { animation: none; } }
 
 /* UI-005: toolbar icons, grouped (phone keys | device | app | tools) */
 .pv-group { display: inline-flex; gap: 3px; padding-left: 6px; margin-left: 3px; border-left: 1px solid var(--line); }

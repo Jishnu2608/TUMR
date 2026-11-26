@@ -115,6 +115,7 @@ fn prepared(base: &str, root: &Path, archives: &[Archive]) -> Prepared {
                         checksum: Checksum::Sha256(sha256_hex(&a.zip)),
                         size: Some(a.zip.len() as u64),
                         version: "1".into(),
+                        signature: None,
                     },
                     target: target.display().to_string(),
                     strip_top: true,

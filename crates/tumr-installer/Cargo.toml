@@ -26,6 +26,7 @@ tumr-storage = { path = "../tumr-storage" }
 tumr-resolver = { path = "../tumr-resolver" }
 tumr-env = { path = "../tumr-env" }
 tumr-platform = { path = "../tumr-platform" }
+pgp = { version = "0.21.1", default-features = false }
 
 [lints]
 workspace = true

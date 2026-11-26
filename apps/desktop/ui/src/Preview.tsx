@@ -8,6 +8,7 @@ import { ArrowLeft, Camera, FolderOpen, Gauge, House, Layers, RefreshCw, RotateC
 import { call, inApp, inTauri, setWindowTitle, widenWindow } from "./api";
 import { FrameRenderer, percentiles } from "./gl";
 import { Approvals, DiagnosticsPanel, RunBanner, useProblems } from "./Problems";
+import { UpdateToast } from "./Update";
 
 interface Hello {
   type: "hello";
@@ -712,6 +713,8 @@ export function Preview() {
       )}
       </div>
       {note && <div className="pv-note" onClick={() => setNote("")}>{note}</div>}
+      {/* UPD-004: the update offer reaches people who live in the phone window too */}
+      <UpdateToast compact />
     </div>
   );
 }

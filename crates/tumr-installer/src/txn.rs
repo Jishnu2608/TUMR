@@ -41,9 +41,12 @@ pub enum Stage {
     Installing,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Outcome {
     Installed,
+    /// Installed, with something the user should know (INS-009b: the publisher's signature was
+    /// made by a key that is not built in, so only the SHA-256 and Authenticode checks applied).
+    InstalledWithWarning(String),
     /// Target already present and complete; only the record was refreshed.
     AlreadyInstalled,
 }
@@ -109,6 +112,71 @@ fn dir_size(p: &Path) -> u64 {
     total
 }
 
+/// INS-009b: checks the download's publisher signature, if the artifact has one. A bad or unreadable
+/// signature is an error (the install stops); a signature by a key that is not built in returns a
+/// warning. For Node the signed document is `SHASUMS256.txt`, which must list the download's
+/// SHA-256 (the download itself was already checked against that SHA-256).
+fn check_gpg(
+    http: &Http,
+    artifact: &crate::catalog::Artifact,
+    archive: &Path,
+) -> Result<Option<String>, InstallError> {
+    use crate::gpg::{self, Publisher, Verdict};
+    let Some(sig) = &artifact.signature else {
+        return Ok(None);
+    };
+    let Some(publisher) = Publisher::from_id(&sig.publisher) else {
+        return Err(InstallError::Signature(format!(
+            "unknown signature publisher '{}'",
+            sig.publisher
+        )));
+    };
+    // a signature file the publisher does not serve (or that cannot be fetched) cannot be checked:
+    // a warning, like an unknown key; only a signature that does not match stops the install
+    let sig_bytes = match http.get_bytes(&sig.url, 64 * 1024) {
+        Ok(b) => b,
+        Err(e @ (InstallError::Http { .. } | InstallError::Network(_))) => {
+            return Ok(Some(format!(
+                "the {} signature could not be fetched ({e}); installed on the SHA-256 and publisher-certificate checks",
+                publisher.name()
+            )));
+        }
+        Err(e) => return Err(e),
+    };
+    let verdict = match &sig.signed_url {
+        None => gpg::verify(publisher, std::fs::File::open(archive)?, &sig_bytes)?,
+        Some(doc_url) => {
+            let doc = http.get_text(doc_url, crate::catalog::MAX_METADATA_BYTES)?;
+            let verdict = gpg::verify(publisher, doc.as_bytes(), &sig_bytes)?;
+            let want = artifact
+                .checksum
+                .sha256()
+                .unwrap_or_default()
+                .to_lowercase();
+            let listed = doc.lines().any(|l| {
+                let mut parts = l.split_whitespace();
+                parts.next().is_some_and(|h| h.eq_ignore_ascii_case(&want))
+                    && parts.next().is_some_and(|f| f == artifact.file_name)
+            });
+            if want.is_empty() || !listed {
+                return Err(InstallError::Signature(format!(
+                    "{} is not listed with its SHA-256 in the signed {}",
+                    artifact.file_name,
+                    doc_url.rsplit('/').next().unwrap_or(doc_url)
+                )));
+            }
+            verdict
+        }
+    };
+    Ok(match verdict {
+        Verdict::Valid(_) => None,
+        Verdict::UnknownKey(issuer) => Some(format!(
+            "{} signature made by a key this version does not know ({issuer}); installed on the SHA-256 and publisher-certificate checks. Update Toolchain Universal Mobile Runtime to check it too.",
+            publisher.name()
+        )),
+    })
+}
+
 /// Installs one archive component transactionally.
 pub fn install_archive(
     http: &Http,
@@ -153,6 +221,7 @@ pub fn install_archive(
         updated_unix: now_unix(),
     })?;
 
+    let mut warning: Option<String> = None;
     let result = (|| -> Result<(), InstallError> {
         // 1. download + verify (INS-001/002)
         let archive = layout.downloads().join(&job.artifact.file_name);
@@ -165,6 +234,8 @@ pub fn install_archive(
             cancel,
         )?;
         set(db, &txn, TxnState::Downloaded, None)?;
+        // INS-009b: the publisher's OpenPGP signature, before anything is extracted
+        warning = check_gpg(http, &job.artifact, &archive)?;
 
         // 2. extract into staging and check
         progress(Stage::Extracting, 0, None);
@@ -209,7 +280,7 @@ pub fn install_archive(
                 "install.component",
                 Some(&job.component_id),
             );
-            Ok(Outcome::Installed)
+            Ok(warning.map_or(Outcome::Installed, Outcome::InstalledWithWarning))
         }
         Err(e) => {
             let _ = std::fs::remove_dir_all(&staging);
@@ -525,6 +596,7 @@ mod tests {
                 checksum: sum,
                 size: None,
                 version: "17.0.21+9".into(),
+                signature: None,
             },
             target: f.layout.jdks().join("temurin-17.0.21_9"),
             strip_top: true,

@@ -7,6 +7,26 @@ release it drafts, so add that section before you run it. Changes not released y
 
 ## Unreleased
 
+- **GPG signature checks for the JDK and Node.js.** On top of the checksum and the Windows
+  publisher signature, the Temurin JDK download is checked against Eclipse Adoptium's GPG
+  signature, and Node's checksum list against the Node.js release managers' signatures. A
+  signature that does not match stops the install; a signature by a key this version does not
+  know yet (for example a new Node releaser) installs with a warning.
+
+- **Update toast with your choice of how to update.** When a newer version is out, a small toast
+  shows in the app and in the phone window: "Version X is available (you have Y)", a link to
+  what's new, and three ways to update: **Update now** (as before: download, checksum check,
+  install, reopen), **Update from the terminal** (copies `tumr update` to paste in PowerShell), or
+  **Download the installer** (opens it on the release page). **Later** hides it until the next
+  version. An open app checks again every 8 hours, not only at start.
+- When the app is minimised or behind other windows, a Windows notification says a new version is
+  out (once per version).
+- The `tumr` command line tells you too: at most once a day, after a command run in a terminal, it
+  prints "Update available: X → Y. Run `tumr update` to install it." Scripts, agents and piped or
+  `--json` output never see it; `manifest_url = "off"` turns it off.
+- Copies older than 0.1.34 have no update channel and cannot show this: update them once by hand
+  with the installer from the release page.
+
 ## 0.1.35
 
 - **New look: Studio / Signal.** The app icon, installer and Start menu icon, the desktop app,

@@ -152,6 +152,12 @@ impl Http {
 
     /// Small text document (metadata), at most `max_bytes`.
     pub fn get_text(&self, url: &str, max_bytes: u64) -> Result<String, InstallError> {
+        let body = self.get_bytes(url, max_bytes)?;
+        String::from_utf8(body).map_err(|e| InstallError::Metadata(e.to_string()))
+    }
+
+    /// Small binary document (a signature file), at most `max_bytes`.
+    pub fn get_bytes(&self, url: &str, max_bytes: u64) -> Result<Vec<u8>, InstallError> {
         let u = self.checked_url(url)?;
         self.retrying(&AtomicBool::new(false), || {
             let resp = self
@@ -175,7 +181,7 @@ impl Http {
                     "{url} is larger than {max_bytes} bytes"
                 )));
             }
-            String::from_utf8(body).map_err(|e| InstallError::Metadata(e.to_string()))
+            Ok(body)
         })
     }
 

@@ -82,16 +82,40 @@ export async function pickFolder(start?: string): Promise<string | null> {
 export interface UpdateInfo {
   current: string;
   configured?: boolean;
-  available?: { version: string; date?: string; notes_url?: string; signed?: boolean } | null;
+  available?: {
+    version: string;
+    date?: string;
+    notes_url?: string;
+    signed?: boolean;
+    files?: { kind: string; name: string; url: string; size: number }[];
+  } | null;
 }
 
 export async function checkUpdate(): Promise<UpdateInfo> {
   if (!inTauri) {
     // `?update=1` shows the banner in a plain browser
     const demo = new URLSearchParams(window.location.search).get("update") === "1";
-    return { current: "0.1.0", available: demo ? { version: "0.1.1", notes_url: "" } : null };
+    return { current: "0.1.0", available: demo ? { version: "0.1.1", notes_url: "https://github.com/Jishnu2608/TUMR/releases" } : null };
   }
   return invoke<UpdateInfo>("update_check");
+}
+
+/**
+ * UPD-004: opens the last check's release notes or installer download in the browser. The app
+ * takes the address from the update manifest it fetched, never from this page.
+ */
+export async function openUpdateLink(what: "notes" | "installer"): Promise<void> {
+  if (!inTauri) {
+    window.open("https://github.com/Jishnu2608/TUMR/releases/latest", "_blank", "noopener");
+    return;
+  }
+  await invoke("update_open", { what });
+}
+
+/** UPD-004: a Windows notification about the newer version (the app writes the text). */
+export async function notifyUpdate(): Promise<void> {
+  if (!inTauri) return;
+  await invoke("update_notify");
 }
 
 /** Downloads, verifies and installs the update; the app closes and opens again by itself. */

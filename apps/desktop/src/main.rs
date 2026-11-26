@@ -182,6 +182,29 @@ fn update_apply() -> Result<(), String> {
     updates::apply()
 }
 
+/// UPD-004: a Windows notification for the last check's newer version, for when no window of the
+/// app is in front (the page decides that and asks once per version). The text comes from the
+/// update manifest, not from the page.
+#[allow(clippy::needless_pass_by_value)] // Tauri passes command arguments by value
+#[tauri::command]
+fn update_notify(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_notification::NotificationExt as _;
+    let (title, body) = updates::notice().ok_or("no newer version to announce")?;
+    app.notification()
+        .builder()
+        .title(title)
+        .body(body)
+        .show()
+        .map_err(|e| e.to_string())
+}
+
+/// UPD-004: opens the last check's release notes (`notes`) or installer download (`installer`).
+#[allow(clippy::needless_pass_by_value)] // Tauri passes command arguments by value
+#[tauri::command]
+fn update_open(what: String) -> Result<(), String> {
+    updates::open(&what)
+}
+
 /// Windows' own folder picker for the project step; `None` when cancelled. The page receives the
 /// chosen path only (no file system access for the web view).
 #[tauri::command]
@@ -418,6 +441,9 @@ fn main() {
         }
     }
     tauri::Builder::default()
+        // UPD-004: Windows notifications for a new version, sent from Rust only (the pages get no
+        // notification permission; see capabilities/default.json)
+        .plugin(tauri_plugin_notification::init())
         .manage(bridge)
         .setup(move |app| {
             match preview {
@@ -436,6 +462,8 @@ fn main() {
             pick_folder,
             update_check,
             update_apply,
+            update_open,
+            update_notify,
             set_window_title,
             open_in_editor,
             widen_window

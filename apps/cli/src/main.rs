@@ -25,6 +25,7 @@ mod rpc_cmd;
 mod run_cmd;
 mod session_cmd;
 mod update_cmd;
+mod update_hint;
 
 use std::process::ExitCode;
 use std::time::Duration;
@@ -648,7 +649,12 @@ fn main() -> ExitCode {
             Ok(t) => t,
             Err(e) => return fail(&e),
         };
-        match cli.command {
+        // UPD-004: the daily "update available" line, only for a person at a terminal
+        let hint = update_hint::allowed(
+            matches!(cli.command, Command::Update { .. }),
+            matches!(cli.command, Command::Mcp { .. } | Command::Rpc { .. } | Command::Agent { .. }),
+        );
+        let code = match cli.command {
             Command::Status { json } => status(&target, json).await,
             Command::Start => start(&target).await,
             Command::Stop => stop(&target).await,
@@ -868,7 +874,11 @@ fn main() -> ExitCode {
                 Err(e) => fail(&e),
             },
             Command::Admin { action, yes } => manage_cmd::admin(&target, &action, yes).await,
+        };
+        if hint {
+            update_hint::maybe(&target).await;
         }
+        code
     })
 }
 

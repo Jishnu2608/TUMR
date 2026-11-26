@@ -34,6 +34,22 @@ pub struct Artifact {
     pub checksum: Checksum,
     pub size: Option<u64>,
     pub version: String,
+    /// INS-009b: the publisher's `OpenPGP` signature to check after the download, if it has one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signature: Option<GpgSignature>,
+}
+
+/// Where a publisher's detached `OpenPGP` signature is, and what it covers (INS-009b).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GpgSignature {
+    /// `adoptium` or `node` (see [`crate::gpg::Publisher::from_id`]).
+    pub publisher: String,
+    /// The `.sig` file.
+    pub url: String,
+    /// The signed document when it is not the download itself (Node: `SHASUMS256.txt`, which
+    /// must then list the download's SHA-256).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signed_url: Option<String>,
 }
 
 fn meta(e: impl std::fmt::Display) -> InstallError {
@@ -75,12 +91,19 @@ pub fn parse_adoptium(json: &str) -> Result<Artifact, InstallError> {
             .as_str()
             .or_else(|| a["version"]["semver"].as_str())
             .unwrap_or(name);
+        // INS-009b: Adoptium signs each download; the `.sig` sits next to the zip
+        let signature = p["signature_link"].as_str().map(|u| GpgSignature {
+            publisher: "adoptium".into(),
+            url: u.into(),
+            signed_url: None,
+        });
         return Ok(Artifact {
             url: link.into(),
             file_name: name.into(),
             checksum: Checksum::Sha256(sum.to_lowercase()),
             size: p["size"].as_u64(),
             version: version.into(),
+            signature,
         });
     }
     Err(meta("no Windows x64 JDK zip in the Adoptium answer"))
@@ -134,6 +157,12 @@ pub fn node_artifact(dist: &str, version: &str, shasums: &str) -> Result<Artifac
         checksum: Checksum::Sha256(sum),
         size: None,
         version: version.into(),
+        // INS-009b: the releaser signs SHASUMS256.txt, which lists this zip's SHA-256
+        signature: Some(GpgSignature {
+            publisher: "node".into(),
+            url: format!("{}.sig", node_shasums_url(dist, version)),
+            signed_url: Some(node_shasums_url(dist, version)),
+        }),
     })
 }
 
@@ -191,6 +220,7 @@ pub fn parse_mingit(json: &str) -> Result<Artifact, InstallError> {
         checksum: Checksum::Sha256(sha),
         size: asset["size"].as_u64(),
         version,
+        signature: None,
     })
 }
 
@@ -253,6 +283,7 @@ pub fn parse_flutter(
         checksum: Checksum::Sha256(sum.to_lowercase()),
         size: None,
         version: r["version"].as_str().unwrap_or_default().into(),
+        signature: None,
     })
 }
 
@@ -418,6 +449,7 @@ impl Repository {
             checksum: Checksum::Sha1(a.sha1.clone()),
             size: a.size,
             version: p.revision.clone(),
+            signature: None,
         })
     }
 }

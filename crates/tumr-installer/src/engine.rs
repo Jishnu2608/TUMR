@@ -48,6 +48,7 @@ impl Default for Endpoints {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
+#[allow(clippy::large_enum_variant)] // a handful per plan; serialized as is for the approval screen
 pub enum StepKind {
     Archive {
         component_id: String,
@@ -616,6 +617,10 @@ pub fn run(job: &Job, prepared: &Prepared, ctx: &RunContext<'_>) {
                 } else {
                     ItemState::Done
                 };
+                // INS-009b: e.g. a signature by a key this version does not know
+                if let Outcome::InstalledWithWarning(w) = &o {
+                    it.message = Some(w.clone());
+                }
                 if let Some(t) = it.bytes_total {
                     it.bytes_done = t;
                 }

@@ -18,6 +18,7 @@
 pub mod catalog;
 pub mod engine;
 pub mod error;
+pub mod gpg;
 pub mod http;
 pub mod layout;
 pub mod licence;

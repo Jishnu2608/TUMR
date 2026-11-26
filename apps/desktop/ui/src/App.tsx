@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Stage } from "./Stage";
 import { Home, useHome } from "./Home";
-import { applyUpdate, call, checkUpdate, DocsPage, inTauri, loadWizard, openDocs, openInEditor, openPreview, openProblems, pickFolder, saveWizard, size, Step, UpdateInfo, WizardState } from "./api";
+import { call, DocsPage, inTauri, loadWizard, openDocs, openInEditor, openPreview, openProblems, pickFolder, saveWizard, size, Step, WizardState } from "./api";
+import { UpdateToast } from "./Update";
 import { AgentsStep } from "./Agents";
 import { STEP_WHY, Why } from "./why";
 import { Approvals, CopyAll } from "./Problems";
@@ -132,7 +133,7 @@ export function App() {
           {pocket ? "Hide Pocket" : "Show Pocket"}
         </button>
         {!inTauri && <p className="demo">Browser preview with sample data — open the desktop app for real results.</p>}
-        <UpdateBanner />
+        <UpdateToast />
         {/* #54: agents waiting for an answer (run a folder, switch the device), also here */}
         <Approvals className="ap-main" />
       </header>
@@ -182,52 +183,6 @@ export function App() {
       )}
     </div>
     {pocket && <Stage step={atHome ? "home" : state.step} />}
-    </div>
-  );
-}
-
-/**
- * UPD-001: "a new version is available" with Update now. The update downloads and verifies the
- * installer, installs it over this copy (settings, toolchains and emulators stay) and reopens the
- * app. Checked once at start, only when an update channel is configured.
- */
-function UpdateBanner() {
-  const [info, setInfo] = useState<UpdateInfo | null>(null);
-  const [state, setState] = useState<"idle" | "updating" | "later">("idle");
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    checkUpdate().then(setInfo).catch(() => undefined);
-  }, []);
-  const next = info?.available;
-  if (!next || state === "later") return null;
-  return (
-    <div className="update" role="status">
-      <span>
-        <strong>Version {next.version} is available</strong> <span className="muted">· you have {info?.current}</span>
-        {error && <span className="warn"> · {error}</span>}
-      </span>
-      <span className="update-actions">
-        {state === "updating" ? (
-          <span className="muted">Downloading and installing… the app closes and opens again by itself.</span>
-        ) : (
-          <>
-            <button className="link" onClick={() => setState("later")}>Later</button>
-            <button
-              className="primary"
-              onClick={() => {
-                setState("updating");
-                setError(null);
-                applyUpdate().catch((e) => {
-                  setError(String(e));
-                  setState("idle");
-                });
-              }}
-            >
-              Update now
-            </button>
-          </>
-        )}
-      </span>
     </div>
   );
 }
