@@ -7,6 +7,12 @@ release it drafts, so add that section before you run it. Changes not released y
 
 ## Unreleased
 
+- **Windows path limit recognised.** When a React Native native module's C++ build fails with
+  ninja's "Filename longer than 260 characters", the problem is now an environment problem (not
+  your code) and comes with the fix: move the project to a shorter folder, delete
+  `android\app\.cxx` and run again. The fix shows in the app, VS Code, `tumr problems` and in
+  what your agent receives.
+
 - **GPG signature checks for the JDK and Node.js.** On top of the checksum and the Windows
   publisher signature, the Temurin JDK download is checked against Eclipse Adoptium's GPG
   signature, and Node's checksum list against the Node.js release managers' signatures. A

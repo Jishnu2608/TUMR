@@ -181,8 +181,19 @@ mod tests {
         let p1 = l1.port;
         drop(l1);
         assert_eq!(a.leases().len(), 1);
+        assert!(
+            a.leases().iter().all(|l| l.port != p1),
+            "the dropped lease is released"
+        );
         let l3 = a.lease("three", r, &[]).unwrap();
-        assert_eq!(l3.port, p1, "a returned port is handed out again");
+        // TEST-005: another program on the machine may take the port in the moment between the
+        // drop and the new lease; the allocator then correctly moves on. Only when the port is
+        // still free must it come back.
+        assert!(
+            l3.port == p1 || !bindable(p1),
+            "a returned port is handed out again (got {}, released {p1})",
+            l3.port
+        );
     }
 
     #[test]

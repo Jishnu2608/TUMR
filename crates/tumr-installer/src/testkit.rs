@@ -7,16 +7,9 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
+/// A fresh test folder under `%TEMP%\tumr-tests` (TEST-004: leftovers are swept by the next run).
 pub fn tmp_dir(tag: &str) -> PathBuf {
-    static N: AtomicUsize = AtomicUsize::new(0);
-    let d = std::env::temp_dir().join(format!(
-        "tumr-inst-{tag}-{}-{}",
-        std::process::id(),
-        N.fetch_add(1, Ordering::Relaxed)
-    ));
-    let _ = std::fs::remove_dir_all(&d);
-    std::fs::create_dir_all(&d).unwrap();
-    d
+    tumr_platform::test_dirs::fresh(&format!("inst-{tag}"))
 }
 
 pub fn make_zip(path: &Path, files: &[(&str, &[u8])]) -> PathBuf {

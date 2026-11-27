@@ -424,8 +424,12 @@ fn problems_for_agent(d: &crate::diag_api::DiagStore, since: u64) -> Vec<Value> 
                 (Some(f), None) => Some(sanitize(f)),
                 _ => None,
             };
-            json!({ "fp": g.fingerprint, "category": g.category, "at": at,
-                "msg": short(&sanitize(&g.message), 300), "count": e.count })
+            let mut v = json!({ "fp": g.fingerprint, "category": g.category, "at": at,
+                "msg": short(&sanitize(&g.message), 300), "count": e.count });
+            if let Some(fix) = &g.fix {
+                v["fix"] = json!(fix); // RN-001
+            }
+            v
         })
         .collect()
 }
@@ -607,8 +611,12 @@ pub(crate) fn digest_value(state: &ApiState, since: Option<&str>) -> Value {
                 (Some(f), None) => Some(sanitize(f)),
                 _ => None,
             };
-            json!({ "fp": g.fingerprint, "category": g.category, "origin": g.origin,
-                "at": at, "msg": short(&g.message, 120), "count": e.count })
+            let mut v = json!({ "fp": g.fingerprint, "category": g.category, "origin": g.origin,
+                "at": at, "msg": short(&g.message, 120), "count": e.count });
+            if let Some(fix) = &g.fix {
+                v["fix"] = json!(fix); // RN-001
+            }
+            v
         })
         .collect();
     let cursor = format!("{}.{}", d.problems.cursor(), ecursor);

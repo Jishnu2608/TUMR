@@ -396,3 +396,40 @@ fn wrapped_crash_leads_with_its_cause_and_app_frames() {
         "at com.example.tumrkotlindemo.Calc.parse(Calc.kt:8)"
     );
 }
+
+// ---- RN-001: the Windows path limit ----------------------------------------------------------
+
+#[test]
+fn ninja_path_limit_is_an_environment_problem_with_a_fix() {
+    // as Gradle's buildCMakeDebug reports it for react-native-safe-area-context
+    let d = reported(
+        "gradle",
+        "ninja: error: Stat(safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/react/renderer/components/safeareacontext/RNCSafeAreaViewShadowNode.cpp.o): Filename longer than 260 characters",
+    );
+    assert_eq!(d.category, Category::Environment);
+    assert_eq!(d.origin, Origin::Environment);
+    let fix = d.fix.expect("a fix");
+    assert!(
+        fix.contains("shorter folder") && fix.contains(r"C:\dev\app") && fix.contains(".cxx"),
+        "{fix}"
+    );
+}
+
+#[test]
+fn other_path_too_long_messages_get_the_same_fix() {
+    for m in [
+        "error: unable to create file foo: Filename too long",
+        "The filename or extension is too long.",
+    ] {
+        let d = reported("gradle", m);
+        assert_eq!(d.category, Category::Environment, "{m}");
+        assert!(d.fix.is_some(), "{m}");
+    }
+}
+
+#[test]
+fn ordinary_problems_have_no_fix() {
+    assert!(reported("kotlinc", "Unresolved reference: foo")
+        .fix
+        .is_none());
+}

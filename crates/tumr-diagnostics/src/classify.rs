@@ -126,6 +126,8 @@ pub const RULES: &[(Category, &str)] = &[
     (Category::Environment, "port 8081"),
     (Category::Environment, "eperm"),
     (Category::Environment, "access is denied"),
+    // RN-001: ninja (C++ builds of React Native native modules) ignores Windows long paths
+    (Category::Environment, "longer than 260 characters"),
     (Category::Environment, "filename too long"),
     (Category::Environment, "filename or extension is too long"),
     (Category::Environment, "path too long"),
@@ -209,9 +211,28 @@ fn make(
         column,
         stack,
         fingerprint: String::new(),
+        fix: fix_for(message),
     };
     d.fingerprint = fingerprint(&d);
     d
+}
+
+/// The fix for the Windows path limit (RN-001).
+pub const LONG_PATH_FIX: &str = "The project's path is too long for Windows (260 characters). Move the project to a shorter folder, such as C:\\dev\\app, delete android\\app\\.cxx and run again. `tumr admin enable-long-paths` helps Gradle and Node, not ninja (the C++ build of React Native native modules).";
+
+/// A known fix for this message, if any.
+#[must_use]
+pub fn fix_for(message: &str) -> Option<String> {
+    let m = message.to_ascii_lowercase();
+    [
+        "longer than 260 characters",
+        "filename too long",
+        "filename or extension is too long",
+        "path too long",
+    ]
+    .iter()
+    .any(|p| m.contains(p))
+    .then(|| LONG_PATH_FIX.to_string())
 }
 
 /// A build or runtime [`Problem`] from an adapter (Gradle, kotlinc, javac, AAPT, Dart, Flutter,

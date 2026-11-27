@@ -18,7 +18,17 @@ $steps = @(
     # The desktop app embeds the built web UI, so it must exist before Rust compiles it.
     @{ Name = 'UI build';  Cmd = { npm --prefix apps/desktop/ui ci --no-audit --no-fund; if ($LASTEXITCODE -eq 0) { npm --prefix apps/desktop/ui run build } } },
     @{ Name = 'Clippy';    Cmd = { cargo clippy --workspace --all-targets --locked } },
-    @{ Name = 'Test';      Cmd = { cargo test --workspace --locked --no-fail-fast } },
+    # TEST-005: the full output goes to target\ci-local\test.log, so a failing or slow test can be
+    # named afterwards; the console shows each crate's result, failures and tests running > 60 s.
+    @{ Name = 'Test';      Cmd = {
+        $log = Join-Path $root 'target\ci-local\test.log'
+        New-Item -ItemType Directory -Force -Path (Split-Path $log) | Out-Null
+        cmd /d /c "set CARGO_TERM_COLOR=never&& cargo test --workspace --locked --no-fail-fast > `"$log`" 2>&1"
+        $code = $LASTEXITCODE
+        Select-String -Path $log -Pattern '^test result|FAILED|panicked at|has been running for over' | ForEach-Object { $_.Line }
+        Write-Host "full test output: $log"
+        $global:LASTEXITCODE = $code
+    } },
     # VS Code extension (VSC-001): compile, unit tests, package (needs the UI build above).
     @{ Name = 'VS Code ext'; Cmd = {
         $v = 'apps/vscode'

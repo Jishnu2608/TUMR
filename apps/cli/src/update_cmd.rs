@@ -145,6 +145,9 @@ pub async fn run(
     let nonce = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_nanos());
+    // the installer runs after this program exits, so its folder cannot be removed now; earlier
+    // update folders (a day or more old, long installed) are removed instead (TEST-004)
+    remove_old_update_folders(&std::env::temp_dir(), std::time::SystemTime::now());
     let tmp = std::env::temp_dir().join(format!("tumr-update-{}-{nonce}", std::process::id()));
     let u = url.clone();
     let f = file.clone();
@@ -176,6 +179,27 @@ pub async fn run(
         }
         Err(e) => fail(&format!("cannot start the installer: {e}")),
     }
+}
+
+/// Removes `tumr-update-*` folders in `temp` last changed more than a day before `now`: downloads
+/// of earlier updates whose installer has long finished. Returns how many went.
+fn remove_old_update_folders(temp: &Path, now: std::time::SystemTime) -> usize {
+    const DAY: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
+    let mut removed = 0;
+    for e in std::fs::read_dir(temp).into_iter().flatten().flatten() {
+        let name = e.file_name();
+        if !name.to_string_lossy().starts_with("tumr-update-") || !e.path().is_dir() {
+            continue;
+        }
+        let old = e
+            .metadata()
+            .and_then(|m| m.modified())
+            .is_ok_and(|t| now.duration_since(t).is_ok_and(|age| age > DAY));
+        if old && std::fs::remove_dir_all(e.path()).is_ok() {
+            removed += 1;
+        }
+    }
+    removed
 }
 
 /// PowerShell that runs the installer silently into `dir`, waits for it, then opens the desktop
@@ -224,6 +248,21 @@ fn spawn_installer(installer: &Path, dir: &Path, relaunch: bool) -> std::io::Res
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn old_update_folders_go_new_ones_and_others_stay() {
+        let temp = std::env::temp_dir().join(format!("tumr-upd-sweep-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&temp);
+        for d in ["tumr-update-1-1", "tumr-update-2-2", "something-else"] {
+            std::fs::create_dir_all(temp.join(d)).unwrap();
+        }
+        let now = std::time::SystemTime::now();
+        assert_eq!(super::remove_old_update_folders(&temp, now), 0, "all fresh");
+        let later = now + std::time::Duration::from_secs(2 * 24 * 60 * 60);
+        assert_eq!(super::remove_old_update_folders(&temp, later), 2);
+        assert!(temp.join("something-else").is_dir());
+        let _ = std::fs::remove_dir_all(&temp);
+    }
+
     use super::*;
 
     #[test]

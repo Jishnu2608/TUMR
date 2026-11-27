@@ -51,4 +51,8 @@ pub struct Diagnostic {
     pub stack: Vec<String>,
     /// Stable identity of "the same problem" ([`crate::fingerprint`]): equal for repeats.
     pub fingerprint: String,
+    /// What to do about it, for problems whose cause and fix are known (RN-001: the Windows path
+    /// limit). Shown to the user and to the agent next to the message.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fix: Option<String>,
 }

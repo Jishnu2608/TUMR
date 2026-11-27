@@ -191,10 +191,8 @@ mod tests {
     use super::*;
 
     fn db(tag: &str) -> (Db, std::path::PathBuf) {
-        let d =
-            std::env::temp_dir().join(format!("tumr-storage-sess-{tag}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&d);
-        std::fs::create_dir_all(&d).unwrap();
+        // TEST-004: under %TEMP%\tumr-tests, swept by the next run
+        let d = tumr_platform::test_dirs::fresh(&format!("storage-sess-{tag}"));
         (Db::open_in(&d).unwrap(), d)
     }
 

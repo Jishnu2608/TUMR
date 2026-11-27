@@ -44,6 +44,8 @@ pub mod secure_file;
 pub mod secure_pipe;
 #[cfg(windows)]
 pub mod system;
+#[doc(hidden)]
+pub mod test_dirs;
 #[cfg(windows)]
 pub mod user_path;
 #[cfg(windows)]

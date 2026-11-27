@@ -220,6 +220,8 @@ pre.licence { max-height: 260px; overflow: auto; white-space: pre-wrap; backgrou
 .dg-copyall:disabled { opacity: 0.7; }
 .dg-tabs .dg-copyall + .dg-close { margin-left: 4px; }
 .dg-where { color: var(--muted-2); font-size: 11px; margin-top: 2px; overflow-wrap: anywhere; }
+/* RN-001: the known fix under a problem */
+.dg-fix { margin: 4px 0 0; padding: 6px 8px; border-left: 2px solid var(--note-line); background: var(--note-bg); color: var(--note-ink); border-radius: 4px; font-size: 12px; }
 .dg-stack { margin: 4px 0 0; padding: 6px; background: var(--code); border-radius: 4px; color: var(--text-2); font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .dg-logs { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .dg-filters { display: flex; gap: 4px; padding: 4px 6px; flex: none; }

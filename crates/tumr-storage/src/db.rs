@@ -220,10 +220,8 @@ pub(crate) mod tests {
     use super::*;
 
     pub(crate) fn temp_db_path(tag: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("tumr-storage-{tag}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        dir.join(DB_FILE)
+        // TEST-004: under %TEMP%\tumr-tests, swept by the next run
+        tumr_platform::test_dirs::fresh(&format!("storage-{tag}")).join(DB_FILE)
     }
 
     fn cleanup(path: &Path) {

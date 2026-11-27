@@ -9,6 +9,8 @@ export interface RuntimeProblem {
   severity: string;
   source?: string;
   message: string;
+  /** RN-001: what to do, for problems whose cause and fix are known */
+  fix?: string;
   file?: string;
   line?: number;
   column?: number;
@@ -54,7 +56,7 @@ export function place(p: RuntimeProblem, project: string): Placed {
     line: Math.max(0, (p.line ?? 1) - 1),
     column: Math.max(0, (p.column ?? 1) - 1),
     severity: p.severity === "error" ? "error" : p.severity === "warning" ? "warning" : "info",
-    message: `${p.message}${times}`,
+    message: `${p.message}${times}${p.fix ? `\n${p.fix}` : ""}`,
     source: `Toolchain Universal Mobile Runtime · ${what}${p.origin === "environment" ? " (environment)" : ""}`,
     code: p.fingerprint,
   };

@@ -132,6 +132,9 @@ pub async fn show(target: &CoreTarget, fingerprint: &str, json: bool) -> ExitCod
         println!("at {}", loc.trim_end());
     }
     println!("{}", e["message"].as_str().unwrap_or(""));
+    if let Some(fix) = e["fix"].as_str() {
+        println!("fix: {fix}"); // RN-001
+    }
     for f in e["stack"].as_array().into_iter().flatten() {
         println!("    {}", f.as_str().unwrap_or(""));
     }

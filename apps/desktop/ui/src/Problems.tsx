@@ -11,6 +11,8 @@ export interface Problem {
   severity: string;
   source: string;
   message: string;
+  /** RN-001: what to do, for problems whose cause and fix are known */
+  fix?: string;
   file?: string;
   line?: number;
   column?: number;
@@ -338,6 +340,7 @@ function ProblemRow({ p, focus }: { p: Problem; focus?: boolean }) {
           {p.source}
         </div>
       )}
+      {p.fix && <p className="dg-fix">{p.fix}</p>}
       {open && (
         <pre className="dg-stack">
           {p.message.includes("\n") && p.message + "\n"}

@@ -484,8 +484,9 @@ mod tests {
     use tumr_platform::process::{descendants, is_running};
 
     fn log(tag: &str) -> PathBuf {
-        std::env::temp_dir()
-            .join(format!("tumr-sup-{}", std::process::id()))
+        // TEST-004: one folder per test process under %TEMP%\tumr-tests, swept by the next run
+        static DIR: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+        DIR.get_or_init(|| tumr_platform::test_dirs::fresh("sup"))
             .join(format!("{tag}.log"))
     }
 

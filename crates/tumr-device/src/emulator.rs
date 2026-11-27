@@ -304,6 +304,10 @@ fn grab(adb_port: u16, serial: &str, grpc: Option<&crate::grpc::Emulator>) -> He
 
 /// Waits (up to 12 s) for a healthy launcher screen; returns the last assessment.
 fn check_render(adb_port: u16, serial: &str, grpc: Option<&crate::grpc::Emulator>) -> Health {
+    // PRV-013: the emulator's virtual UWB chip fails soon after boot, and the system image's own
+    // UWB diagnostics then file a full bug report ("Screenshot taken with bug report" on the
+    // screen). Apps almost never need UWB on an emulator; the setting persists in the AVD.
+    let _ = adb::shell(adb_port, serial, "cmd uwb disable-uwb");
     let _ = adb::shell(adb_port, serial, "input keyevent KEYCODE_WAKEUP");
     let _ = adb::shell(adb_port, serial, "input keyevent KEYCODE_HOME");
     let start = Instant::now();
