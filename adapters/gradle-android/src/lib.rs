@@ -345,6 +345,9 @@ fn gradle_spec(
             // reuse the configured task graph: a no-change build skips ~10 s of configuration
             "--configuration-cache".into(),
             "--configuration-cache-problems=warn".into(),
+            // EXPO-007: reuse task outputs across clean builds and projects (Kotlin of the Expo
+            // modules, resources); a clean sample-expo build went from 96 s to 50 s
+            "--build-cache".into(),
         ]
         .into_iter()
         .chain(extra.iter().cloned()),
@@ -360,6 +363,15 @@ fn gradle_spec(
     spec.cwd = Some(ctx.project.clone());
     spec.group = Some(ctx.group.clone());
     spec
+}
+
+/// EXPO-007: shown before a project's first native build.
+pub const FIRST_BUILD_NOTE: &str = "First native build of this project: it takes several minutes once (Gradle downloads the dependencies and compiles the native libraries); later builds take seconds.";
+
+/// EXPO-007: has this module never been built here (no `<module>/build` folder)?
+#[must_use]
+pub fn first_build(root: &Path, module: &str) -> bool {
+    !root.join(module).join("build").is_dir()
 }
 
 /// Longest wait for a warm-up build before a real build starts anyway.
@@ -430,12 +442,21 @@ pub fn build_with(
     let log = ctx
         .log_dir
         .join(format!("gradle-{}.log", ctx.group.replace(':', "-")));
+    // EXPO-007: say so when this is the project's first native build (it takes minutes, once)
+    let first = first_build(root, module);
     let spec = gradle_spec(ctx, module, extra, &name, &log);
     wait_for_warm_up(ctx, sink);
     sink(Event::Phase {
         phase: Phase::Building,
         message: format!("gradlew :{module}:assembleDebug"),
     });
+    if first {
+        // a phase, not a log line: `tumr run`, the app and VS Code show phases
+        sink(Event::Phase {
+            phase: Phase::Building,
+            message: FIRST_BUILD_NOTE.into(),
+        });
+    }
     let start = Instant::now();
     let started_at = std::time::SystemTime::now();
     ctx.supervisor
@@ -630,6 +651,18 @@ impl RunningApp for GradleApp {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn first_build_is_when_the_module_has_no_build_folder() {
+        // EXPO-007
+        let d = std::env::temp_dir().join(format!("tumr-gradle-first-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("app")).unwrap();
+        assert!(first_build(&d, "app"));
+        std::fs::create_dir_all(d.join("app").join("build")).unwrap();
+        assert!(!first_build(&d, "app"));
+        let _ = std::fs::remove_dir_all(&d);
+    }
 
     #[test]
     fn javac_cannot_find_symbol_names_the_symbol() {

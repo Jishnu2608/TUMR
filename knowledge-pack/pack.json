@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "pack_version": "2026.11.12-1",
+  "pack_version": "2026.11.27-1",
   "sources": {
     "gradle-compat": { "url": "https://docs.gradle.org/current/userguide/compatibility.html", "checked": "2026-11-12" },
     "about-agp": { "url": "https://developer.android.com/build/releases/about-agp", "checked": "2026-11-12" },
@@ -10,8 +10,8 @@
     "agp-current-notes": { "url": "https://developer.android.com/build/releases/gradle-plugin", "checked": "2026-11-12" },
     "expo-versions": { "url": "https://docs.expo.dev/versions/latest/", "checked": "2026-11-12" },
     "rn-env-setup": { "url": "https://reactnative.dev/docs/set-up-your-environment?os=windows&platform=android", "checked": "2026-11-12" },
-    "poc-001": { "url": "https://github.com/Jishnu2608/AI-Mobile-Runtime/blob/main/poc/reports/POC-001-provisioning.md", "checked": "2026-11-11" },
-    "poc-006": { "url": "https://github.com/Jishnu2608/AI-Mobile-Runtime/blob/main/poc/reports/POC-006-adapters.md", "checked": "2026-11-11" },
+    "poc-001": { "url": "https://github.com/Jishnu2608/TUMR/blob/main/poc/reports/POC-001-provisioning.md", "checked": "2026-11-11" },
+    "poc-006": { "url": "https://github.com/Jishnu2608/TUMR/blob/main/poc/reports/POC-006-adapters.md", "checked": "2026-11-11" },
     "android-sdk-licence": { "url": "https://developer.android.com/studio/terms", "checked": "2026-11-12" },
     "temurin-licence": { "url": "https://adoptium.net/docs/faq/", "checked": "2026-11-12" }
   },

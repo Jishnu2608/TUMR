@@ -134,6 +134,25 @@ fn events_sink(state: &ApiState) -> Sink {
     })
 }
 
+/// EXPO-004: a few seconds after the app (re)starts, checks that the emulator draws it; if not,
+/// a Device problem says so (with the fix). Runs on its own thread: the run does not wait.
+fn check_drawn_later(state: &ApiState, serial: String) {
+    let (diag, port) = (state.diag.clone(), state.adb_port);
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(8));
+        if let Some(problem) = tumr_device::health::check_app_drawn(port, &serial) {
+            tracing::warn!(serial = %serial, "the app is not drawn (black screen with content)");
+            diag.lock().unwrap_or_else(PoisonError::into_inner).problem(
+                tumr_diagnostics::from_message(
+                    "render",
+                    problem,
+                    tumr_diagnostics::Category::Device,
+                ),
+            );
+        }
+    });
+}
+
 fn record_message(state: &ApiState, message: &str) {
     state
         .diag
@@ -372,6 +391,24 @@ pub(crate) fn stop_app(state: &ApiState) -> Option<RunInfo> {
             .unwrap_or_else(PoisonError::into_inner)
             .take(),
     );
+    // EXPO-011: a build or reload holds the app until it ends, which can be a long wait (a
+    // dev build that never loads, a Gradle build). End the run's processes first: the reload
+    // then fails at once and lets go of the app.
+    if matches!(
+        state.run_app.try_lock(),
+        Err(std::sync::TryLockError::WouldBlock)
+    ) {
+        let group = state
+            .run_info
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .as_ref()
+            .map(|i| i.group.clone());
+        if let Some(g) = group {
+            let n = state.supervisor.stop_members(&g);
+            tracing::info!(group = %g, processes = n, "stop: cancelled the reload in progress");
+        }
+    }
     let app = state
         .run_app
         .lock()
@@ -543,6 +580,7 @@ pub(crate) fn run_inner(
                 Some(adapter.id()),
             );
             let _ = session_api::apply(state, &mut s, SessionEvent::AppForeground, Some(&package));
+            check_drawn_later(state, ctx.device.serial.clone());
             let info = RunInfo {
                 adapter: adapter.id().into(),
                 project: path.clone(),
@@ -737,6 +775,17 @@ pub(crate) fn reload_kind(state: &ApiState, kind: ReloadKind) -> Result<Value, R
                         SessionEvent::Reloaded,
                         Some(&format!("{ms} ms")),
                     );
+                }
+            }
+            if kind != ReloadKind::Hot {
+                let serial = state
+                    .run_info
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .as_ref()
+                    .map(|i| i.serial.clone());
+                if let Some(serial) = serial {
+                    check_drawn_later(state, serial);
                 }
             }
             Ok(json!({ "status": "reloaded", "kind": kind, "ms": ms }))

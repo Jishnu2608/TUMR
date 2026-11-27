@@ -33,6 +33,10 @@ pub const MAX_NATIVE_PATH: usize = 80;
 pub const EXPO_GO: &str = "host.exp.exponent";
 /// Longest wait for dependencies, Metro's first bundle, or a native build.
 pub const SLOW: Duration = Duration::from_secs(30 * 60);
+/// EXPO-011: how long the app may run without Metro doing anything (no bundling, no output)
+/// before the wait gives up: the app is not loading from Metro (for example a dev build that
+/// shows its launcher).
+pub const LOAD_IDLE: Duration = Duration::from_secs(3 * 60);
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ReactNative;
@@ -327,7 +331,9 @@ fn start_metro(ctx: &AdapterContext, mode: Mode, sink: &Sink) -> Result<Metro, A
         spec.env.insert("RCT_METRO_PORT".into(), port.to_string());
     }
     spec.cwd = Some(ctx.project.clone());
-    spec.group = Some(ctx.group.clone());
+    // EXPO-010: Metro gets a job of its own, not the run's shared group job: stopping it then
+    // ends the whole tree (cmd → npx → node). In the group job, which outlives its members so
+    // the Gradle daemon stays warm, `npx` and `node` kept running and kept the port.
     sink(Event::Phase {
         phase: Phase::Building,
         message: format!("Metro on localhost:{port}"),
@@ -400,7 +406,16 @@ fn wait_ready(
     let start = Instant::now();
     let mut problems = Vec::new();
     let mut bundled_ok = false;
+    // EXPO-011: Metro's log growing (bundling progress, any output) counts as activity
+    let log_len = |p: &Path| std::fs::metadata(p).map_or(0, |md| md.len());
+    let mut last_len = log_len(&m.log);
+    let mut active_at = Instant::now();
     loop {
+        let len = log_len(&m.log);
+        if len != last_len {
+            last_len = len;
+            active_at = Instant::now();
+        }
         match pump(m, &ctx.project, sink, &mut problems) {
             Some(true) => bundled_ok = true,
             Some(false) => {
@@ -424,6 +439,15 @@ fn wait_ready(
         if bundled_ok && running {
             return Ok(());
         }
+        if running && !bundled_ok && idle_too_long(active_at.elapsed()) {
+            return Err(AdapterError::Failed(format!(
+                "the app is running but has not asked Metro (port {}) for its bundle for {} minutes; \
+                 it is not loading from Metro (a dev build showing its launcher, or Metro unreachable). \
+                 Reload, or run the project again",
+                m.port,
+                LOAD_IDLE.as_secs() / 60
+            )));
+        }
         if start.elapsed() > SLOW {
             return Err(AdapterError::Failed(
                 "the app did not load its bundle in time".into(),
@@ -431,6 +455,12 @@ fn wait_ready(
         }
         std::thread::sleep(Duration::from_millis(400));
     }
+}
+
+/// EXPO-011: has Metro been quiet for too long while the app runs?
+#[must_use]
+pub fn idle_too_long(quiet_for: Duration) -> bool {
+    quiet_for > LOAD_IDLE
 }
 
 /// Native app: Gradle build of `android/`, install, launch.
@@ -485,8 +515,77 @@ fn native_build(ctx: &AdapterContext, port: u16, sink: &Sink) -> Result<String, 
     let package = tumr_adapter_gradle::install(&g, &apk, sink)?;
     // the app checks Metro once at start; launched before Metro listens, it never loads
     wait_for_metro(ctx, port, sink);
-    tumr_adapter_gradle::launch(&g, &package, sink)?;
+    match dev_client_scheme(&ctx.project) {
+        Some(scheme) => open_dev_client(ctx, &scheme, port, &package, sink)?,
+        None => tumr_adapter_gradle::launch(&g, &package, sink)?,
+    }
     Ok(package)
+}
+
+/// EXPO-001: the `exp+<slug>` URL scheme an Expo dev build (`expo-dev-client`) registers in the
+/// manifest `expo prebuild` wrote; `None` for bare React Native or an Expo app without it.
+#[must_use]
+pub fn dev_client_scheme(root: &Path) -> Option<String> {
+    if !uses_expo(root) {
+        return None;
+    }
+    let manifest =
+        std::fs::read_to_string(root.join("android/app/src/main/AndroidManifest.xml")).ok()?;
+    manifest
+        .split("android:scheme=\"")
+        .skip(1)
+        .filter_map(|rest| rest.split('"').next())
+        .find(|scheme| {
+            scheme.starts_with("exp+")
+                && scheme.len() <= 120
+                && scheme
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.'))
+        })
+        .map(String::from)
+}
+
+/// The `am start` that opens a dev build straight into the app from Metro on localhost (EXPO-001)
+/// without the dev menu's first-run sheet (EXPO-002, `disableOnboarding=1`).
+#[must_use]
+pub fn open_dev_client_cmd(scheme: &str, port: u16, package: &str) -> String {
+    format!(
+        "am start -a android.intent.action.VIEW -d '{scheme}://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A{port}&disableOnboarding=1' {package}"
+    )
+}
+
+/// Opens the dev build with its development link and reports it started.
+fn open_dev_client(
+    ctx: &AdapterContext,
+    scheme: &str,
+    port: u16,
+    package: &str,
+    sink: &Sink,
+) -> Result<(), AdapterError> {
+    sink(Event::Phase {
+        phase: Phase::Launching,
+        message: format!("{package} (Expo dev build, Metro on port {port})"),
+    });
+    let (aport, serial) = (ctx.device.adb.port, ctx.device.serial.clone());
+    let out = tumr_device::adb::shell(aport, &serial, &open_dev_client_cmd(scheme, port, package))
+        .map_err(|e| AdapterError::LaunchFailed(e.to_string()))?;
+    if out.contains("Error") {
+        return Err(AdapterError::LaunchFailed(out));
+    }
+    // the process appears a moment after `am start` returns
+    let mut pid = None;
+    for _ in 0..20 {
+        pid = tumr_device::app::pid(aport, &serial, package);
+        if pid.is_some() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(250));
+    }
+    sink(Event::AppStarted {
+        package: package.to_string(),
+        pid,
+    });
+    Ok(())
 }
 
 impl Adapter for ReactNative {
@@ -691,10 +790,21 @@ impl RunningApp for RnApp {
                         tumr_device::adb::shell(port, &serial, &open_expo_go(mport))
                             .map_err(|e| AdapterError::Failed(e.to_string()))?;
                     }
-                    Mode::Native => {
-                        tumr_device::app::launch(port, &serial, &self.package, None)
-                            .map_err(AdapterError::LaunchFailed)?;
-                    }
+                    Mode::Native => match dev_client_scheme(&self.ctx.project) {
+                        // EXPO-001: a dev build opens from Metro's current port
+                        Some(scheme) => {
+                            tumr_device::adb::shell(
+                                port,
+                                &serial,
+                                &open_dev_client_cmd(&scheme, mport, &self.package),
+                            )
+                            .map_err(|e| AdapterError::LaunchFailed(e.to_string()))?;
+                        }
+                        None => {
+                            tumr_device::app::launch(port, &serial, &self.package, None)
+                                .map_err(AdapterError::LaunchFailed)?;
+                        }
+                    },
                 }
                 let pkg = self.package.clone();
                 let mut m = self
@@ -769,6 +879,61 @@ pub fn runtime_problem(message: &str) -> Problem {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn expo_dev_build(tag: &str, manifest: &str) -> PathBuf {
+        let d =
+            std::env::temp_dir().join(format!("tumr-rn-devclient-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("android/app/src/main")).unwrap();
+        std::fs::write(
+            d.join("package.json"),
+            r#"{"dependencies":{"expo":"~58.1.0","expo-dev-client":"~58.0.22"}}"#,
+        )
+        .unwrap();
+        std::fs::write(d.join("android/app/src/main/AndroidManifest.xml"), manifest).unwrap();
+        d
+    }
+
+    #[test]
+    fn a_quiet_metro_gives_up_after_three_minutes() {
+        // EXPO-011: the wait for an app that never asks Metro for its bundle has an end
+        assert!(!idle_too_long(Duration::from_secs(60)));
+        assert!(!idle_too_long(LOAD_IDLE));
+        assert!(idle_too_long(LOAD_IDLE + Duration::from_secs(1)));
+        assert!(LOAD_IDLE < SLOW);
+    }
+
+    #[test]
+    fn expo_dev_build_opens_with_its_development_link() {
+        let d = expo_dev_build(
+            "ok",
+            r#"<intent-filter><data android:scheme="https"/><data android:scheme="exp+sample-calculator-expo"/></intent-filter>"#,
+        );
+        let scheme = dev_client_scheme(&d).unwrap();
+        assert_eq!(scheme, "exp+sample-calculator-expo");
+        assert_eq!(
+            open_dev_client_cmd(&scheme, 8083, "com.tumr.calculator.expo"),
+            "am start -a android.intent.action.VIEW -d 'exp+sample-calculator-expo://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8083&disableOnboarding=1' com.tumr.calculator.expo"
+        );
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn no_dev_client_link_for_bare_react_native_or_odd_schemes() {
+        // a scheme with characters a shell could misread is not used
+        let d = expo_dev_build("odd", r#"<data android:scheme="exp+a'b;rm"/>"#);
+        assert_eq!(dev_client_scheme(&d), None);
+        let _ = std::fs::remove_dir_all(&d);
+        // bare React Native: no expo dependency, plain launch
+        let d = expo_dev_build("bare", r#"<data android:scheme="exp+x"/>"#);
+        std::fs::write(
+            d.join("package.json"),
+            r#"{"dependencies":{"react-native":"0.88.1"}}"#,
+        )
+        .unwrap();
+        assert_eq!(dev_client_scheme(&d), None);
+        let _ = std::fs::remove_dir_all(&d);
+    }
 
     #[test]
     fn metro_is_ready_only_when_it_says_so() {

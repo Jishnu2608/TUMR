@@ -32,6 +32,7 @@ mod tests;
 
 pub use classify::{
     from_adapter_error, from_anr, from_crash, from_js_error, from_message, from_problem,
+    is_dependency_warning, missing_expo_module,
 };
 pub use fingerprint::{Added, Dedupe, Entry};
 pub use model::{Category, Diagnostic, Origin, Severity};

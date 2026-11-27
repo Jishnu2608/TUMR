@@ -164,6 +164,22 @@ impl DiagStore {
     }
 
     pub fn problem(&mut self, d: Diagnostic) {
+        // EXPO-006: a warning inside a dependency is not a problem of the project: Logs view only
+        if tumr_diagnostics::is_dependency_warning(&d) {
+            let at = d.file.as_deref().map(sanitize).unwrap_or_default();
+            let line = d.line.map(|l| format!(":{l}")).unwrap_or_default();
+            self.log(
+                "tool",
+                'W',
+                Some("dependency".into()),
+                None,
+                &format!(
+                    "warning in a dependency: {} ({at}{line})",
+                    sanitize(&d.message)
+                ),
+            );
+            return;
+        }
         // the Core log is a file on disk: sanitised like everything else that leaves the store
         tracing::info!(category = ?d.category, origin = ?d.origin, line = ?d.line, "diagnostic: {} ({})", sanitize(&d.message), d.file.as_deref().map(sanitize).unwrap_or_default());
         // reported again by the new build: still a problem, no longer "checking"
@@ -509,6 +525,14 @@ impl Poll {
                 lock(store).problem(tumr_diagnostics::from_js_error(&e));
             }
         }
+        // EXPO-003: an Expo native module missing from the build (once per module)
+        for (_, level, _, msg) in &fresh {
+            if matches!(level, 'E' | 'W' | 'F') {
+                if let Some(d) = tumr_diagnostics::missing_expo_module(msg) {
+                    lock(store).problem_once(d);
+                }
+            }
+        }
     }
 }
 
@@ -763,6 +787,30 @@ mod tests {
         assert_eq!((ms, pid, level), (1_731_500_000_123, 1835, 'E'));
         assert_eq!((tag.as_str(), msg.as_str()), ("flutter", "boom: x"));
         assert!(parse_epoch_line("--------- beginning of main").is_none());
+    }
+
+    #[test]
+    fn dependency_warnings_go_to_the_logs_not_the_problems() {
+        // EXPO-006: 51 Kotlin deprecation warnings inside node_modules buried real problems
+        let mut s = DiagStore::default();
+        let warning = |file: &str| {
+            tumr_diagnostics::from_problem(&tumr_adapter::Problem {
+                severity: tumr_adapter::Severity::Warning,
+                message: "'class NativeArrayBuffer : Destructible' is deprecated.".into(),
+                file: Some(file.into()),
+                line: Some(42),
+                column: None,
+                source: "kotlinc".into(),
+            })
+        };
+        s.problem(warning(
+            "D:/p/node_modules/expo-modules-core/android/src/main/java/A.kt",
+        ));
+        assert_eq!(s.problems.len(), 0, "not a problem of the project");
+        assert_eq!(s.log_cursor(), 1, "kept in the logs");
+        assert!(s.logs[0].text.starts_with("warning in a dependency:"));
+        s.problem(warning("app/src/main/java/com/x/MainActivity.kt"));
+        assert_eq!(s.problems.len(), 1, "the project's own warning stays");
     }
 
     #[test]

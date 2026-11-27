@@ -51,7 +51,7 @@ function CalculatorScreen() {
   return (
     // the app draws behind the system bars (edge to edge): keep clear of them
     <View style={styles.screen}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar barStyle="light-content" />
       <Text style={styles.expression}>{calc.expression}</Text>
       <Text style={styles.display} numberOfLines={1} adjustsFontSizeToFit>
         {calc.display}
@@ -86,7 +86,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#101318',
     justifyContent: 'flex-end',
     padding: 16,
-    paddingTop: (Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 44) + 16,
+    // React Native 0.88 draws edge to edge (behind the status bar) and has no
+    // StatusBar.currentHeight any more: keep clear of the bar with a fixed padding
+    paddingTop: (Platform.OS === 'android' ? 32 : 44) + 16,
     paddingBottom: 40,
   },
   expression: { color: '#9AA4B2', fontSize: 24, textAlign: 'right', minHeight: 30 },

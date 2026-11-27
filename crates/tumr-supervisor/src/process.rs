@@ -397,6 +397,27 @@ impl Supervisor {
             .remove(group);
     }
 
+    /// EXPO-011: stops the processes of a run (members of `group`, and processes named
+    /// `<tool>:<group>` with a job of their own, such as Metro) but keeps the group's shared job,
+    /// so a Gradle daemon stays warm. Used to cancel a build or reload in progress. Returns how
+    /// many were running.
+    #[must_use = "how many processes were running"]
+    pub fn stop_members(&self, group: &str) -> usize {
+        let suffix = format!(":{group}");
+        let mut stopped = 0;
+        for (name, e) in self.inner.lock().iter_mut() {
+            if e.spec.group.as_deref() == Some(group) || name.ends_with(&suffix) {
+                if matches!(e.state, RunState::Running | RunState::Restarting) {
+                    stopped += 1;
+                    e.state = RunState::Stopped;
+                }
+                e.kill();
+                e.restart_at = None;
+            }
+        }
+        stopped
+    }
+
     #[must_use]
     pub fn status(&self, name: &str) -> Option<ProcessStatus> {
         self.inner.lock().get(name).map(Entry::status)
@@ -594,6 +615,40 @@ mod tests {
         sup.start(cmd("emu-like", "exit 1")).unwrap();
         let s = wait_for(&sup, "emu-like", RunState::Failed, 10);
         assert_eq!((s.state, s.restarts), (RunState::Failed, 0));
+    }
+
+    #[test]
+    fn stop_members_ends_a_runs_processes_and_spares_others() {
+        // EXPO-011: a build in the run's group, Metro with a job of its own named after the run,
+        // and an unrelated process (log files named without `:`, which Windows refuses)
+        let spec = |name: &str, log_tag: &str| {
+            ProcessSpec::new(name, "cmd.exe", log(log_tag)).args([
+                "/d",
+                "/c",
+                "ping -n 60 127.0.0.1 >nul",
+            ])
+        };
+        let sup = Supervisor::new();
+        let mut build = spec("gradle:run:s-1", "members-gradle");
+        build.group = Some("run:s-1".into());
+        sup.start(build).unwrap();
+        sup.start(spec("metro:run:s-1", "members-metro")).unwrap();
+        sup.start(spec("emulator:other", "members-other")).unwrap();
+        assert_eq!(sup.stop_members("run:s-1"), 2);
+        assert_eq!(
+            sup.status("gradle:run:s-1").unwrap().state,
+            RunState::Stopped
+        );
+        assert_eq!(
+            sup.status("metro:run:s-1").unwrap().state,
+            RunState::Stopped
+        );
+        assert_eq!(
+            sup.status("emulator:other").unwrap().state,
+            RunState::Running
+        );
+        assert_eq!(sup.stop_members("run:s-1"), 0, "nothing left to stop");
+        sup.shutdown();
     }
 
     #[test]

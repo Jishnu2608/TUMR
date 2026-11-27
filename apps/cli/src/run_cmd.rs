@@ -69,12 +69,20 @@ async fn with_progress(
         None
     } else {
         let (mut w, _) = target.connect_or_start().await?;
+        // the cursor before this call starts: events up to here belong to earlier runs
+        let mut since = w
+            .call::<Value>(
+                methods::PROJECT_STATUS,
+                serde_json::json!({ "since": 0, "limit": 0 }),
+            )
+            .await
+            .ok()
+            .and_then(|v| v["cursor"].as_u64())
+            .unwrap_or(0);
         let d = done.clone();
         Some(tokio::spawn(async move {
-            let mut since = 0u64;
             // phase lines repeat for every Gradle task: show at most one per second
             let mut last_phase: Option<std::time::Instant> = None;
-            let mut first = true;
             loop {
                 let stop = d.load(Ordering::SeqCst);
                 if let Ok(v) = w
@@ -84,26 +92,33 @@ async fn with_progress(
                     )
                     .await
                 {
-                    // the first poll may still show the previous run's events
-                    if !first {
-                        for e in v["events"].as_array().into_iter().flatten() {
-                            let is_phase = e["event"] == "phase";
-                            if is_phase
-                                && last_phase.is_some_and(|t| t.elapsed() < Duration::from_secs(1))
-                            {
-                                continue;
+                    let cursor = v["cursor"].as_u64().unwrap_or(since);
+                    // EXPO-007: a new run starts a new event log (its cursor begins again at 0):
+                    // read it from the start instead of skipping its first events
+                    if cursor < since {
+                        since = 0;
+                        continue;
+                    }
+                    for e in v["events"].as_array().into_iter().flatten() {
+                        let is_phase = e["event"] == "phase";
+                        // only Gradle's task-by-task progress (`:app:compileDebugKotlin`) is
+                        // thinned out; notes such as the first-build one always print (EXPO-007)
+                        let progress =
+                            is_phase && e["message"].as_str().is_some_and(|m| m.starts_with(':'));
+                        if progress
+                            && last_phase.is_some_and(|t| t.elapsed() < Duration::from_secs(1))
+                        {
+                            continue;
+                        }
+                        if let Some(l) = event_line(e) {
+                            if progress {
+                                last_phase = Some(std::time::Instant::now());
                             }
-                            if let Some(l) = event_line(e) {
-                                if is_phase {
-                                    last_phase = Some(std::time::Instant::now());
-                                }
-                                println!("{l}");
-                            }
+                            println!("{l}");
                         }
                     }
-                    since = v["cursor"].as_u64().unwrap_or(since);
+                    since = cursor;
                 }
-                first = false;
                 if stop {
                     break;
                 }

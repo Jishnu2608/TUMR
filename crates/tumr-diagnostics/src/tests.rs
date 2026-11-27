@@ -397,6 +397,81 @@ fn wrapped_crash_leads_with_its_cause_and_app_frames() {
     );
 }
 
+// ---- EXPO-003: a missing Expo native module ------------------------------------------------------
+
+#[test]
+fn a_missing_expo_module_names_the_package_to_install() {
+    // the line seen live with sample-expo (SDK 58) before expo-splash-screen was installed
+    let d = crate::missing_expo_module(
+        "java.lang.ClassNotFoundException: expo.modules.splashscreen.SplashScreenManager",
+    )
+    .expect("a problem");
+    assert_eq!(d.category, Category::Runtime);
+    assert!(d.message.contains("expo-splash-screen"), "{}", d.message);
+    assert_eq!(
+        d.fix.as_deref(),
+        Some("Run `npx expo install expo-splash-screen` in the project, then run again (the native app is rebuilt).")
+    );
+    // the "Caused by" line of the same exception gives the same problem (one entry, not two)
+    let again = crate::missing_expo_module(
+        "Caused by: java.lang.ClassNotFoundException: expo.modules.splashscreen.SplashScreenManager",
+    )
+    .unwrap();
+    assert_eq!(again.fingerprint, d.fingerprint);
+    // an Expo class not in the table: still reported, generic fix
+    let other = crate::missing_expo_module(
+        "java.lang.ClassNotFoundException: expo.modules.somethingnew.Foo",
+    )
+    .unwrap();
+    assert!(other.fix.unwrap().contains("npx expo install"));
+    // not Expo, or not this exception: nothing
+    assert!(
+        crate::missing_expo_module("java.lang.ClassNotFoundException: com.example.Foo").is_none()
+    );
+    assert!(crate::missing_expo_module("Failed to hide splash screen").is_none());
+}
+
+// ---- EXPO-006: warnings inside dependencies ------------------------------------------------------
+
+fn located(severity: Severity, file: &str) -> Diagnostic {
+    from_problem(&Problem {
+        severity,
+        message: "'class NativeArrayBuffer : Destructible' is deprecated.".into(),
+        file: Some(file.into()),
+        line: Some(42),
+        column: None,
+        source: "kotlinc".into(),
+    })
+}
+
+#[test]
+fn warnings_in_dependencies_are_not_project_problems() {
+    let dep = r"D:/p/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/jni/CppType.kt";
+    assert!(crate::is_dependency_warning(&located(
+        Severity::Warning,
+        dep
+    )));
+    assert!(crate::is_dependency_warning(&located(
+        Severity::Warning,
+        r"C:\Users\u\.gradle\caches\transforms\x\Foo.kt"
+    )));
+    // an error in a dependency still breaks the build: it stays a problem
+    assert!(!crate::is_dependency_warning(&located(
+        Severity::Error,
+        dep
+    )));
+    // the project's own warnings stay
+    assert!(!crate::is_dependency_warning(&located(
+        Severity::Warning,
+        "app/src/main/java/com/x/MainActivity.kt"
+    )));
+    // a project folder merely named like one does not count
+    assert!(!crate::is_dependency_warning(&located(
+        Severity::Warning,
+        "src/node_modules_helper/Foo.kt"
+    )));
+}
+
 // ---- RN-001: the Windows path limit ----------------------------------------------------------
 
 #[test]

@@ -229,13 +229,14 @@ fn read_android(root: &Path, dir: &Path, notes: &mut Vec<String>) -> AndroidFact
         .unwrap_or_default();
     let catalog = toml.as_deref().unwrap_or("");
     // `rootProject.ext.<name>` (React Native) → the root build script's `ext { <name> = … }`
-    let ext = build_files.iter().map(|t| ext_values(t)).fold(
+    let mut ext = build_files.iter().map(|t| ext_values(t)).fold(
         std::collections::HashMap::new(),
         |mut m, e| {
             m.extend(e);
             m
         },
     );
+    add_expo_defaults(root, &build_files, toml.as_deref().unwrap_or(""), &mut ext);
     let from_ext = |key: &str| {
         app.contains(&format!("rootProject.ext.{key}"))
             .then(|| ext.get(key).cloned())
@@ -461,6 +462,70 @@ fn sdk_level(app: &str, key: &str, catalog: &str) -> Option<String> {
 }
 
 /// `ext { name = value … }` assignments of a root build script (quotes removed).
+/// EXPO-005: an Expo prebuild project gets its SDK levels from Expo's `expo-root-project` Gradle
+/// plugin: adds the `ext` values it sets, unless the project already set them.
+fn add_expo_defaults(
+    root: &Path,
+    build_files: &[String],
+    catalog: &str,
+    ext: &mut std::collections::HashMap<String, String>,
+) {
+    if !build_files.iter().any(|t| t.contains("expo-root-project")) {
+        return;
+    }
+    if let Ok(src) = std::fs::read_to_string(root.join(EXPO_ROOT_PLUGIN)) {
+        for (k, v) in expo_root_defaults(&src, catalog) {
+            ext.entry(k).or_insert(v);
+        }
+    }
+}
+
+/// EXPO-005: where Expo's root-project Gradle plugin sets the default SDK levels.
+pub const EXPO_ROOT_PLUGIN: &str = "node_modules/expo-modules-autolinking/android/expo-gradle-plugin/expo-autolinking-plugin/src/main/kotlin/expo/modules/plugin/ExpoRootProjectPlugin.kt";
+
+/// EXPO-005: the `ext` values Expo's plugin sets, from lines such as
+/// `extra.setIfNotExist("compileSdkVersion") { … getVersionOrDefault("compileSdk", "37") … }`.
+/// A version in the project's own catalog (`compileSdk = "36"` in `libs.versions.toml`) wins,
+/// as it does in the plugin.
+#[must_use]
+pub fn expo_root_defaults(
+    plugin_src: &str,
+    catalog: &str,
+) -> std::collections::HashMap<String, String> {
+    let quoted_after = |text: &str, marker: &str| -> Option<String> {
+        let at = text.find(marker)? + marker.len();
+        let rest = &text[at..];
+        let open = rest.find('"')? + 1;
+        let close = rest[open..].find('"')? + open;
+        Some(rest[open..close].to_string())
+    };
+    let catalog_value = |key: &str| {
+        catalog.lines().find_map(|l| {
+            let (k, v) = l.split_once('=')?;
+            (k.trim() == key).then(|| v.trim().trim_matches('"').to_string())
+        })
+    };
+    let mut out = std::collections::HashMap::new();
+    for line in plugin_src.lines() {
+        let Some(ext_key) = quoted_after(line, "setIfNotExist(") else {
+            continue;
+        };
+        let Some(after) = line.find("getVersionOrDefault(") else {
+            continue;
+        };
+        let args = &line[after + "getVersionOrDefault(".len()..];
+        let mut quoted = args.split('"').skip(1).step_by(2);
+        let (Some(cat_key), Some(default)) = (quoted.next(), quoted.next()) else {
+            continue;
+        };
+        let value = catalog_value(cat_key).unwrap_or_else(|| default.to_string());
+        if value.chars().all(|c| c.is_ascii_digit() || c == '.') && !value.is_empty() {
+            out.insert(ext_key, value);
+        }
+    }
+    out
+}
+
 #[must_use]
 pub fn ext_values(text: &str) -> std::collections::HashMap<String, String> {
     let mut out = std::collections::HashMap::new();
@@ -704,6 +769,51 @@ mod flutter_default_tests {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const EXPO_PLUGIN: &str = r#"
+  val minSdk = extra.setIfNotExist("minSdkVersion") { Integer.parseInt(versionCatalogs.getVersionOrDefault("minSdk", "24")) }
+  val compileSdk = extra.setIfNotExist("compileSdkVersion") { Integer.parseInt(versionCatalogs.getVersionOrDefault("compileSdk", "37")) }
+  val targetSdk = extra.setIfNotExist("targetSdkVersion") { Integer.parseInt(versionCatalogs.getVersionOrDefault("targetSdk", "36")) }
+"#;
+
+    #[test]
+    fn expo_root_plugin_defaults_and_catalog_overrides() {
+        // EXPO-005: the values Expo SDK 58's plugin sets
+        let d = expo_root_defaults(EXPO_PLUGIN, "");
+        assert_eq!(d.get("minSdkVersion").map(String::as_str), Some("24"));
+        assert_eq!(d.get("compileSdkVersion").map(String::as_str), Some("37"));
+        assert_eq!(d.get("targetSdkVersion").map(String::as_str), Some("36"));
+        // the project's own version catalog wins
+        let d = expo_root_defaults(EXPO_PLUGIN, "[versions]\ntargetSdk = \"35\"\n");
+        assert_eq!(d.get("targetSdkVersion").map(String::as_str), Some("35"));
+        assert_eq!(d.get("compileSdkVersion").map(String::as_str), Some("37"));
+    }
+
+    #[test]
+    fn expo_prebuild_project_gets_its_sdk_levels() {
+        let d = std::env::temp_dir().join(format!("tumr-expo-sdk-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let plugin = d.join(EXPO_ROOT_PLUGIN);
+        std::fs::create_dir_all(plugin.parent().unwrap()).unwrap();
+        std::fs::write(&plugin, EXPO_PLUGIN).unwrap();
+        std::fs::create_dir_all(d.join("android/app")).unwrap();
+        std::fs::write(
+            d.join("android/build.gradle"),
+            "apply plugin: \"expo-root-project\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            d.join("android/app/build.gradle"),
+            "android {\n    compileSdk rootProject.ext.compileSdkVersion\n    defaultConfig {\n        minSdkVersion rootProject.ext.minSdkVersion\n        targetSdkVersion rootProject.ext.targetSdkVersion\n    }\n}\n",
+        )
+        .unwrap();
+        let mut notes = Vec::new();
+        let f = read_android(&d, &d.join("android"), &mut notes);
+        assert_eq!(f.compile_sdk.as_deref(), Some("37"));
+        assert_eq!(f.target_sdk.as_deref(), Some("36"));
+        assert_eq!(f.min_sdk.as_deref(), Some("24"));
+        let _ = std::fs::remove_dir_all(&d);
+    }
 
     fn write(root: &Path, rel: &str, text: &str) {
         let p = root.join(rel);

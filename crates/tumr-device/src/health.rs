@@ -59,6 +59,53 @@ pub fn assess(raw: &[u8]) -> Health {
     assess_pixels(w, h, &raw[header..])
 }
 
+/// EXPO-004: what TUMR says when the app has content but nothing is drawn.
+pub const APP_NOT_DRAWN: &str = "The emulator stopped drawing the app: Android lists the app's text and buttons, but the screen stays black (the emulator's GPU session broke). Stop the emulator and run again (`tumr device stop <profile>`, then `tumr run`); if it keeps happening, use the software GPU: `tumr device boot <profile> --gpu swiftshader_indirect`.";
+
+/// EXPO-004: is the app's content missing from the screen? The frame's content area is black
+/// although the UI tree lists at least two pieces of visible text. A dark app still draws its
+/// text (lit pixels), so only a broken GPU session gives this combination.
+#[must_use]
+pub fn app_not_drawn(frame: &Health, nodes: &[crate::ui::UiNode]) -> bool {
+    if frame.ok || frame.width == 0 || frame.lit > 0.01 {
+        return false;
+    }
+    let (w, h) = (
+        i32::try_from(frame.width).unwrap_or(0),
+        i32::try_from(frame.height).unwrap_or(0),
+    );
+    let texts = nodes
+        .iter()
+        .filter(|n| {
+            !n.text.trim().is_empty()
+                && n.center[0] > 0
+                && n.center[0] < w
+                && n.center[1] > h * 6 / 100
+                && n.center[1] < h * 88 / 100
+        })
+        .count();
+    texts >= 2
+}
+
+/// EXPO-004: takes a screencap and the UI tree of the running app; `Some(problem)` when the app's
+/// content is not drawn. Errors (no device, no tree) are not a finding.
+#[must_use]
+pub fn check_app_drawn(adb_port: u16, serial: &str) -> Option<&'static str> {
+    let raw = crate::adb::shell_bytes(
+        adb_port,
+        serial,
+        "screencap",
+        std::time::Duration::from_secs(20),
+    )
+    .ok()?;
+    let frame = assess(&raw);
+    if frame.ok {
+        return None;
+    }
+    let nodes = crate::ui::dump(adb_port, serial).ok()?;
+    app_not_drawn(&frame, &nodes).then_some(APP_NOT_DRAWN)
+}
+
 /// Checks `w × h` RGBA pixels (gRPC `RGBA8888` screenshot or a screencap body).
 #[must_use]
 #[allow(clippy::many_single_char_names)] // w/h/i/r/g/b/p: image maths
@@ -120,6 +167,45 @@ pub(crate) mod tests {
             }
         }
         v
+    }
+
+    fn node(text: &str, x: i32, y: i32) -> crate::ui::UiNode {
+        crate::ui::UiNode {
+            text: text.into(),
+            desc: String::new(),
+            id: String::new(),
+            class: "TextView".into(),
+            bounds: [x - 10, y - 10, x + 10, y + 10],
+            center: [x, y],
+            clickable: false,
+            scrollable: false,
+            focused: false,
+            package: String::new(),
+        }
+    }
+
+    #[test]
+    fn app_with_text_on_a_black_screen_is_not_drawn() {
+        // EXPO-004: the calculator's keys are in the tree, the frame is black
+        let black = assess(&frame(108, 240, |_, _| [0, 0, 0, 255]));
+        let keys = [node("AC", 15, 114), node("7", 15, 140), node("0", 54, 86)];
+        assert!(super::app_not_drawn(&black, &keys));
+        // a dark app draws its text: lit pixels, not a finding
+        let dark = assess(&frame(108, 240, |x, y| {
+            if (x / 6 + y / 6) % 5 == 0 {
+                [240, 240, 240, 255]
+            } else {
+                [16, 19, 24, 255]
+            }
+        }));
+        assert!(!super::app_not_drawn(&dark, &keys));
+        // a black screen with nothing to show (no text) is not a finding either
+        assert!(!super::app_not_drawn(&black, &[node("", 15, 114)]));
+        // text only in the status bar band does not count
+        assert!(!super::app_not_drawn(
+            &black,
+            &[node("3:37", 10, 5), node("100%", 90, 5)]
+        ));
     }
 
     #[test]

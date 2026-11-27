@@ -179,6 +179,24 @@ pub fn is_app_file(file: &str) -> bool {
         && !f.split('/').any(|seg| NOT_APP_DIRS.contains(&seg))
 }
 
+/// Folders that hold third-party code the user does not edit (npm packages, Gradle caches,
+/// pub packages, `CocoaPods`, Maven).
+const DEPENDENCY_DIRS: &[&str] = &["node_modules", ".gradle", ".pub-cache", "Pods", ".m2"];
+
+/// EXPO-006: a warning located in a dependency (for example a Kotlin deprecation warning inside
+/// `node_modules/expo-modules-core`). The user cannot fix it, and dozens of them would bury the
+/// project's own problems, so it goes to the logs instead of the problems list. Errors in
+/// dependencies still count: they break the build.
+#[must_use]
+pub fn is_dependency_warning(d: &Diagnostic) -> bool {
+    d.severity != Severity::Error
+        && d.file.as_deref().is_some_and(|f| {
+            f.replace('\\', "/")
+                .split('/')
+                .any(|seg| DEPENDENCY_DIRS.contains(&seg))
+        })
+}
+
 fn origin(category: Category, app_located: bool) -> Origin {
     match category {
         Category::Environment | Category::Device => Origin::Environment,
@@ -215,6 +233,65 @@ fn make(
     };
     d.fingerprint = fingerprint(&d);
     d
+}
+
+/// EXPO-003: Expo module classes and the npm package that provides them.
+const EXPO_MODULES: &[(&str, &str)] = &[
+    ("expo.modules.splashscreen.", "expo-splash-screen"),
+    ("expo.modules.systemui.", "expo-system-ui"),
+    ("expo.modules.devlauncher.", "expo-dev-client"),
+    ("expo.modules.devmenu.", "expo-dev-client"),
+    ("expo.modules.updates.", "expo-updates"),
+    ("expo.modules.font.", "expo-font"),
+    ("expo.modules.constants.", "expo-constants"),
+    ("expo.modules.statusbar.", "expo-status-bar"),
+    ("expo.modules.asset.", "expo-asset"),
+    ("expo.modules.image.", "expo-image"),
+    ("expo.modules.camera.", "expo-camera"),
+    ("expo.modules.notifications.", "expo-notifications"),
+];
+
+/// EXPO-003: an app log line saying an Expo native module's class is missing from the build
+/// (for example `java.lang.ClassNotFoundException: expo.modules.splashscreen.SplashScreenManager`
+/// after `create-expo-app` + `expo prebuild` without `expo-splash-screen`: the app stays on its
+/// splash screen). Returns a Runtime problem with the package to install, or `None`.
+#[must_use]
+pub fn missing_expo_module(line: &str) -> Option<Diagnostic> {
+    let at = line.find("ClassNotFoundException: ")? + "ClassNotFoundException: ".len();
+    let class: String = line[at..]
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == '.' || *c == '_' || *c == '$')
+        .collect();
+    if !class.starts_with("expo.modules.") {
+        return None;
+    }
+    let package = EXPO_MODULES
+        .iter()
+        .find(|(prefix, _)| class.starts_with(prefix))
+        .map(|(_, p)| *p);
+    let (message, fix) = match package {
+        Some(p) => (
+            format!("The app's native build is missing the Expo module {p} (java.lang.ClassNotFoundException: {class}); parts of the app that need it do not work (without expo-splash-screen the app stays on its splash screen)."),
+            format!("Run `npx expo install {p}` in the project, then run again (the native app is rebuilt)."),
+        ),
+        None => (
+            format!("The app's native build is missing an Expo module (java.lang.ClassNotFoundException: {class})."),
+            "Install the Expo package that provides this class with `npx expo install <package>`, then run again (the native app is rebuilt).".to_string(),
+        ),
+    };
+    let mut d = make(
+        Category::Runtime,
+        false,
+        Severity::Error,
+        "expo",
+        &message,
+        None,
+        None,
+        None,
+        Vec::new(),
+    );
+    d.fix = Some(fix);
+    Some(d)
 }
 
 /// The fix for the Windows path limit (RN-001).
