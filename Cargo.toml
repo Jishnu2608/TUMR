@@ -5,7 +5,7 @@ members = ["crates/tumr-platform", "crates/tumr-api", "crates/tumr-storage", "cr
 exclude = ["poc"]
 
 [workspace.package]
-version = "0.1.35"
+version = "0.1.36"
 edition = "2021"
 rust-version = "1.89"  # std::fs::File::try_lock
 repository = "https://github.com/Jishnu2608/TUMR"

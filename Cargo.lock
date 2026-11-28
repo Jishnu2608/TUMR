@@ -6068,7 +6068,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "tumr-adapter"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "serde",
  "tumr-device",
@@ -6078,7 +6078,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-adapter-flutter"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "serde_json",
  "sha2",
@@ -6089,7 +6089,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-adapter-gradle"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "tumr-adapter",
  "tumr-device",
@@ -6098,7 +6098,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-adapter-react-native"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "serde_json",
  "tumr-adapter",
@@ -6109,7 +6109,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-api"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "serde",
  "serde_json",
@@ -6118,7 +6118,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-cli"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "clap",
  "serde_json",
@@ -6137,7 +6137,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-core"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "getrandom 0.3.4",
  "notify",
@@ -6169,7 +6169,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-create"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "serde",
  "serde_json",
@@ -6180,7 +6180,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-desktop"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "rfd",
  "serde",
@@ -6196,7 +6196,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-device"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "http",
  "prost",
@@ -6212,7 +6212,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-diagnostics"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "regex",
  "serde",
@@ -6223,14 +6223,14 @@ dependencies = [
 
 [[package]]
 name = "tumr-elevate"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "tumr-platform",
 ]
 
 [[package]]
 name = "tumr-env"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "serde",
  "serde_json",
@@ -6239,7 +6239,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-installer"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "getrandom 0.3.4",
  "pgp",
@@ -6258,7 +6258,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-mcp"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "serde_json",
  "tokio",
@@ -6266,7 +6266,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-platform"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "tokio",
  "windows-sys 0.59.0",
@@ -6274,7 +6274,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-resolver"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "base64 0.22.1",
  "ed25519-dalek",
@@ -6287,7 +6287,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-session"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "serde",
  "tumr-storage",
@@ -6295,7 +6295,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-storage"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "rusqlite",
  "serde",
@@ -6306,7 +6306,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-stream"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "futures-util",
  "getrandom 0.3.4",
@@ -6319,7 +6319,7 @@ dependencies = [
 
 [[package]]
 name = "tumr-supervisor"
-version = "0.1.35"
+version = "0.1.36"
 dependencies = [
  "serde",
  "tumr-platform",

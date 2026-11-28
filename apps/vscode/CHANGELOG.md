@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7
+
+- Problems from the runtime now show what to do when the cause and the fix are known. For example, a React Native native build that hits Windows' 260-character path limit says to move the project to a shorter folder, delete `android\app\.cxx` and run again (that hint needs Toolchain Universal Mobile Runtime 0.1.36).
+
 ## 0.1.6
 
 - New look: the Studio / Signal colours of Toolchain Universal Mobile Runtime. The icon keeps its shape (a phone showing an agent's prompt) on an ink tile with a blue prompt, and the Mobile Preview uses Signal Blue for actions and focus, coral for build progress and sage for a healthy connection, in light and dark themes.
