@@ -312,10 +312,14 @@ pub fn list(project: &Path, json_out: bool) -> std::process::ExitCode {
         .map(|c| {
             let user = c.user_config.and_then(|p| p.resolve(None));
             let proj = c.project_config.and_then(|p| p.resolve(Some(project)));
+            let (state, launch) = crate::agent_open::client_state(c, project);
             json!({
                 "id": c.id,
                 "name": c.name,
                 "installed": c.installed(),
+                "state": state.word(),
+                "state_label": state.label(),
+                "launch": launch,
                 "setup": if c.setup { format!("tumr agent setup {}", c.id) } else { "manual".to_string() },
                 "user_config": user.as_ref().map(|p| p.display().to_string()),
                 "user_connected": user.as_deref().is_some_and(|p| c.configured_in(p)),
@@ -351,16 +355,10 @@ args = [\"mcp\", \"--client\", \"{}\"]",
         project.display()
     );
     for (c, r) in CLIENTS.iter().zip(&rows) {
-        let connected = r["user_connected"] == true || r["project_connected"] == true;
         println!(
-            "  {:<22} {:<13} {:<11} {}",
+            "  {:<22} {:<15} {}",
             c.name,
-            if r["installed"] == true {
-                "installed"
-            } else {
-                "not found"
-            },
-            if connected { "connected" } else { "-" },
+            r["state"].as_str().unwrap_or("?"),
             if c.setup {
                 format!("tumr agent setup {}", c.id)
             } else {
@@ -368,7 +366,8 @@ args = [\"mcp\", \"--client\", \"{}\"]",
             }
         );
     }
-    println!("\nConfig files: tumr agent clients --json");
+    println!("\nStates: ready = installed and connected · not-configured = installed, `tumr agent setup` connects it · not-installed · unsupported = found, but TUMR cannot start it.");
+    println!("Config files and how each one is started: tumr agent clients --json");
     std::process::ExitCode::SUCCESS
 }
 

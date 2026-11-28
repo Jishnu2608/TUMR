@@ -64,6 +64,14 @@ $lines.Add("| Package | Version | Licence |")
 $lines.Add("|---|---|---|")
 foreach ($p in $npm) { $lines.Add("| $($p.name) | $($p.version) | $($p.license) |") }
 $lines.Add("")
+$lines.Add("## Files in the TUMR Create Java template (1)")
+$lines.Add("")
+$lines.Add("TUMR Create writes these into new Java projects unchanged (``crates/tumr-create/templates/java``).")
+$lines.Add("")
+$lines.Add("| Component | Version | Licence | Source |")
+$lines.Add("|---|---|---|---|")
+$lines.Add("| Gradle wrapper (``gradle-wrapper.jar``, ``gradlew``, ``gradlew.bat``) | 9.1.0 | Apache-2.0 | https://github.com/gradle/gradle |")
+$lines.Add("")
 [System.IO.File]::WriteAllText((Join-Path (Get-Location) $Out), ($lines -join "`n") + "`n", [System.Text.UTF8Encoding]::new($false))
 $unknown = @($rust | Where-Object { -not $_.license -and -not $_.license_file }).Count
 Write-Host "${Out}: $($rust.Count) crates, $(@($npm).Count) npm packages, $unknown without a licence field"

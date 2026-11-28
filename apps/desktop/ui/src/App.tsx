@@ -4,6 +4,7 @@ import { Home, useHome } from "./Home";
 import { call, DocsPage, inTauri, loadWizard, openDocs, openInEditor, openPreview, openProblems, pickFolder, saveWizard, size, Step, WizardState } from "./api";
 import { UpdateToast } from "./Update";
 import { AgentsStep } from "./Agents";
+import { CreateWizard } from "./Create";
 import { STEP_WHY, Why } from "./why";
 import { Approvals, CopyAll } from "./Problems";
 // the product mark, shared with the website and the app icon (brand/)
@@ -45,7 +46,7 @@ function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
   return { data, error, loading, reload: run };
 }
 
-function Problem({ text, retry }: { text: string; retry?: () => void }) {
+export function Problem({ text, retry }: { text: string; retry?: () => void }) {
   return (
     <div className="problem" role="alert">
       <strong>Something went wrong.</strong> {text}
@@ -58,7 +59,7 @@ function Problem({ text, retry }: { text: string; retry?: () => void }) {
   );
 }
 
-function Busy({ text }: { text: string }) {
+export function Busy({ text }: { text: string }) {
   return <p className="busy">{text}</p>;
 }
 
@@ -66,7 +67,7 @@ export function App() {
   const [state, setState] = useState<WizardState | null>(null);
   // AUD-P3-24: returning users open on the home screen; the wizard is one click away
   const home = useHome();
-  const [view, setView] = useState<"home" | "wizard" | null>(null);
+  const [view, setView] = useState<"home" | "wizard" | "create" | null>(null);
   // AUD-P3-38: Pocket can be switched off, and the choice is remembered on this PC
   const [pocket, setPocket] = useState(() => {
     try {
@@ -122,7 +123,11 @@ export function App() {
           Toolchain Universal Mobile Runtime
         </h1>
         <p className="sub">
-          {atHome ? "Your projects, the running app and your agent's work." : "Set up everything your project needs to run on the Android emulator."}
+          {view === "create"
+            ? "A new, minimal project, made with the framework's official tool."
+            : atHome
+              ? "Your projects, the running app and your agent's work."
+              : "Set up everything your project needs to run on the Android emulator."}
           {(home?.recent.length ?? 0) > 0 && (
             <button className="link home-toggle" onClick={() => setView(atHome ? "wizard" : "home")}>
               {atHome ? "Open setup" : "← Home"}
@@ -137,12 +142,21 @@ export function App() {
         {/* #54: agents waiting for an answer (run a folder, switch the device), also here */}
         <Approvals className="ap-main" />
       </header>
-      {atHome ? (
+      {view === "create" ? (
+        <main>
+          <CreateWizard
+            onClose={() => setView((home?.recent.length ?? 0) > 0 ? "home" : "wizard")}
+            onRun={(path) => wizard({ step: "run", projectPath: path, jobId: undefined })}
+            onCheck={(path) => wizard({ step: "plan", projectPath: path, jobId: undefined })}
+          />
+        </main>
+      ) : atHome ? (
         <main>
           <Home
             summary={home}
             onSetup={(path) => wizard({ step: "plan", projectPath: path, jobId: undefined })}
             onNewProject={() => wizard({ step: "project", projectPath: "", jobId: undefined })}
+            onCreate={() => setView("create")}
             onAgents={() => wizard({ step: "agents" })}
           />
         </main>
@@ -168,7 +182,7 @@ export function App() {
       </ol>
       <main>
         {state.step === "scan" && <ScanStep onNext={() => go({ step: "project" })} />}
-        {state.step === "project" && <ProjectStep path={state.projectPath} onBack={() => go({ step: "scan" })} onNext={(p) => go({ step: "plan", projectPath: p })} />}
+        {state.step === "project" && <ProjectStep path={state.projectPath} onBack={() => go({ step: "scan" })} onNext={(p) => go({ step: "plan", projectPath: p })} onCreate={() => setView("create")} />}
         {state.step === "plan" && (
           <PlanStep path={state.projectPath} onBack={() => go({ step: "project" })} onNext={(needsLicences, nothing) => go({ step: nothing ? "ready" : needsLicences ? "licences" : "install" })} />
         )}
@@ -182,7 +196,7 @@ export function App() {
       </>
       )}
     </div>
-    {pocket && <Stage step={atHome ? "home" : state.step} />}
+    {pocket && <Stage step={atHome ? "home" : view === "create" ? "project" : state.step} />}
     </div>
   );
 }
@@ -326,7 +340,7 @@ function Fact({ label, value, ok }: { label: string; value: string; ok: boolean 
   );
 }
 
-function ProjectStep({ path, onBack, onNext }: { path: string; onBack: () => void; onNext: (p: string) => void }) {
+function ProjectStep({ path, onBack, onNext, onCreate }: { path: string; onBack: () => void; onNext: (p: string) => void; onCreate: () => void }) {
   const [input, setInput] = useState(path);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -379,7 +393,12 @@ function ProjectStep({ path, onBack, onNext }: { path: string; onBack: () => voi
           </span>
         )}
       </div>
-      <p className="small muted">The folder with your app's <code>pubspec.yaml</code>, <code>package.json</code> or <code>settings.gradle</code>.</p>
+      <p className="small muted">
+        The folder with your app's <code>pubspec.yaml</code>, <code>package.json</code> or <code>settings.gradle</code>. No app yet?{" "}
+        <button className="link" onClick={onCreate}>
+          Create a new project
+        </button>
+      </p>
       {typing ? (
         <div className="row">
           <input id="path" aria-label="Project folder (full path)" value={input} placeholder="D:\Work\my-app" onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && detect(input)} autoFocus />
@@ -544,8 +563,9 @@ function PlanStep({ path, onBack, onNext }: { path: string; onBack: () => void; 
   );
 }
 
-function LicenceStep({ path, onBack, onNext }: { path: string; onBack: () => void; onNext: () => void }) {
-  const { data, error, loading, reload } = useAsync(() => call("install.prepare", { path }), [path]);
+/** CRT-E: `framework` plans a project that does not exist yet (the Create Project wizard). */
+export function LicenceStep({ path, framework, onBack, onNext }: { path: string; framework?: string; onBack: () => void; onNext: () => void }) {
+  const { data, error, loading, reload } = useAsync(() => call("install.prepare", framework ? { path, framework } : { path }), [path, framework]);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [failure, setFailure] = useState<string | null>(null);
@@ -589,7 +609,7 @@ function LicenceStep({ path, onBack, onNext }: { path: string; onBack: () => voi
   );
 }
 
-function InstallStep({ path, jobId, onJob, onBack, onDone }: { path: string; jobId?: string; onJob: (id: string) => void; onBack: () => void; onDone: () => void }) {
+export function InstallStep({ path, framework, jobId, onJob, onBack, onDone }: { path: string; framework?: string; jobId?: string; onJob: (id: string) => void; onBack: () => void; onDone: () => void }) {
   const [status, setStatus] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
@@ -616,7 +636,7 @@ function InstallStep({ path, jobId, onJob, onBack, onDone }: { path: string; job
     };
     const start = async () => {
       try {
-        const r = await call("install.start", { path });
+        const r = await call("install.start", framework ? { path, framework } : { path });
         onJob(r.job_id);
         await poll(r.job_id);
       } catch (e) {
@@ -896,7 +916,7 @@ function RunProgress({ onCancel }: { onCancel: () => void }) {
 }
 
 /** AUD-P3-23: the themed "trust this folder?" question (Project step, and Run for an untrusted folder). */
-function TrustPrompt({ onTrust, onCancel }: { onTrust: () => void; onCancel: () => void }) {
+export function TrustPrompt({ onTrust, onCancel }: { onTrust: () => void; onCancel: () => void }) {
   return (
     <div className="confirm" role="alertdialog" aria-label="Trust this folder?">
       <p>
@@ -995,7 +1015,7 @@ function RunStep({ path, onBack, onNext }: { path: string; onBack: () => void; o
   );
 }
 
-function Nav({ onBack, onNext, nextLabel = "Next", backLabel = "Back", nextDisabled }: { onBack?: () => void; onNext?: () => void; nextLabel?: string; backLabel?: string; nextDisabled?: boolean }) {
+export function Nav({ onBack, onNext, nextLabel = "Next", backLabel = "Back", nextDisabled }: { onBack?: () => void; onNext?: () => void; nextLabel?: string; backLabel?: string; nextDisabled?: boolean }) {
   return (
     <div className="nav">
       {onBack ? (

@@ -6125,6 +6125,7 @@ dependencies = [
  "tokio",
  "tumr-api",
  "tumr-core",
+ "tumr-create",
  "tumr-elevate",
  "tumr-env",
  "tumr-installer",
@@ -6152,6 +6153,7 @@ dependencies = [
  "tumr-adapter-gradle",
  "tumr-adapter-react-native",
  "tumr-api",
+ "tumr-create",
  "tumr-device",
  "tumr-diagnostics",
  "tumr-elevate",
@@ -6163,6 +6165,17 @@ dependencies = [
  "tumr-storage",
  "tumr-stream",
  "tumr-supervisor",
+]
+
+[[package]]
+name = "tumr-create"
+version = "0.1.35"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+ "tumr-platform",
+ "tumr-resolver",
 ]
 
 [[package]]

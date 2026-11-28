@@ -51,6 +51,11 @@ fn state_word(s: ItemState) -> &'static str {
 }
 
 pub async fn install(target: &CoreTarget, dir: String, yes: bool) -> ExitCode {
+    install_params(target, json!({ "path": dir }), yes).await
+}
+
+/// [`install`] for any plan parameters (CRT-C: a new project's plan carries `framework`).
+pub async fn install_params(target: &CoreTarget, params: Value, yes: bool) -> ExitCode {
     let (mut client, started) = match target.connect_or_start().await {
         Ok(v) => v,
         Err(e) => return fail(&e),
@@ -59,10 +64,7 @@ pub async fn install(target: &CoreTarget, dir: String, yes: bool) -> ExitCode {
         println!("(started the Runtime Core)\n");
     }
     println!("Reading release information from official sources…");
-    let v: Value = match client
-        .call(methods::INSTALL_PREPARE, json!({ "path": dir }))
-        .await
-    {
+    let v: Value = match client.call(methods::INSTALL_PREPARE, params.clone()).await {
         Ok(v) => v,
         Err(e) => return fail(&e.to_string()),
     };
@@ -116,10 +118,7 @@ pub async fn install(target: &CoreTarget, dir: String, yes: bool) -> ExitCode {
         }
     }
 
-    let started: InstallStarted = match client
-        .call(methods::INSTALL_START, json!({ "path": dir }))
-        .await
-    {
+    let started: InstallStarted = match client.call(methods::INSTALL_START, params).await {
         Ok(s) => s,
         Err(e) => return fail(&e.to_string()),
     };

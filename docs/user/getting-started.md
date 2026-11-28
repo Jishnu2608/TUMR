@@ -36,6 +36,8 @@ Every step has a link to the part of this guide that explains it.
 The same works from a terminal: `tumr doctor`, `tumr plan <folder>`, `tumr install <folder>`.
 
 ## 3. Your first app
+No app yet? **Create a new project** on the home screen (or `tumr create`) makes an empty Expo, React Native, Flutter, Kotlin or Java project and connects your agent to it: see [Create a new project](create-project.md).
+
 The wizard's **Run** step does this for you. In a terminal, inside your project folder:
 
 ```powershell

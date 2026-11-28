@@ -12,6 +12,7 @@ pub mod agent_api;
 pub mod api_server;
 pub mod app_api;
 pub mod auth;
+pub mod create_api;
 pub mod daemon;
 pub mod device_api;
 pub mod diag_api;

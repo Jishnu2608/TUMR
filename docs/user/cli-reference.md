@@ -8,6 +8,7 @@ Toolchain Universal Mobile Runtime — run and preview mobile apps next to your 
 Usage: tumr <COMMAND>
 
 Commands:
+  create      TUMR Create: a new, minimal Expo, React Native, Flutter, Kotlin or Java project. Asks for what the flags leave out (in a terminal). Exit codes: 0 created, 1 failed (rolled back), 2 invalid input, 3 cancelled, 4 a creation tool is missing
   status      Show whether the Runtime Core is running
   start       Start the Runtime Core in the background (no-op if already running)
   stop        Stop the Runtime Core
@@ -43,6 +44,29 @@ Commands:
 Options:
   -h, --help     Print help
   -V, --version  Print version
+```
+
+## tumr create
+
+```text
+TUMR Create: a new, minimal Expo, React Native, Flutter, Kotlin or Java project. Asks for what the flags leave out (in a terminal). Exit codes: 0 created, 1 failed (rolled back), 2 invalid input, 3 cancelled, 4 a creation tool is missing
+
+Usage: tumr create [OPTIONS]
+
+Options:
+      --framework <FRAMEWORK>    expo, react-native, flutter, kotlin or java
+      --name <NAME>              The project's name (also the new folder's name with --parent)
+      --package-id <PACKAGE_ID>  Android application id; default com.example.<name>
+      --path <PATH>              An existing, empty folder that becomes the project
+      --parent <PARENT>          A folder in which TUMR creates a new folder named after the project (default: the current folder)
+      --agent <AGENT>            claude-code, codex, cursor, antigravity, copilot or none
+      --no-trust                 Do not trust the new folder (its build scripts then need `tumr trust` first)
+      --install                  Install a missing creation tool without asking first (licences are still shown)
+      --open                     Open the agent in the project afterwards
+      --no-open                  Do not open the agent
+      --yes                      Never ask: values with a default take it (package id, a new folder in the current folder, trust, no agent), confirmations are given. --framework and --name are needed
+      --json                     Machine-readable result; never asks
+  -h, --help                     Print help
 ```
 
 ## tumr status
@@ -506,6 +530,8 @@ Commands:
   hook          The agent's stop hook (written by `setup` for claude-code, codex, cursor and antigravity): reads the hook input on stdin, waits for the rebuild the agent's saves started, and keeps the agent working while the app has a build error, a new runtime error or a crash. Never blocks when nothing of this folder runs
   link          One-click install link for Cursor or VS Code, made for this PC's tumr (creates the agent client if needed)
   repoint       DEC-055: point every all-projects agent entry that runs another tumr at this one (the installer runs it after an install). Changes nothing else and starts nothing
+  connect       Connect an agent to a new project: the `tumr` server in the agent's own settings once (if missing), plus this project's instructions. Without --yes only lists the changes (JSON)
+  open          Start a coding agent in a project folder and report what TUMR could see: app launched, workspace opened, MCP config written, MCP connected, session ready
   doctor        Check each connected agent end to end: config entry, program path, token, a real MCP handshake and its last call. `--fix` repoints entries at this tumr
   add           Create an agent client with its own token (default scopes: observe, interact, control)
   clients       Coding agents on this PC (Claude Code, Codex, Cursor, Claude Desktop, VS Code, Antigravity): installed, connected, and how to connect each one. Does not need the Core
@@ -581,6 +607,40 @@ Usage: tumr agent repoint
 
 Options:
   -h, --help  Print help
+```
+
+### tumr agent connect
+
+```text
+Connect an agent to a new project: the `tumr` server in the agent's own settings once (if missing), plus this project's instructions. Without --yes only lists the changes (JSON)
+
+Usage: tumr agent connect [OPTIONS] <AGENT>
+
+Arguments:
+  <AGENT>  claude-code, codex, cursor, claude-desktop, vscode or antigravity
+
+Options:
+      --project <PROJECT>  Project folder; default: current folder
+      --yes                Make the changes (backed up first)
+      --json               Machine-readable output (always JSON today)
+  -h, --help               Print help
+```
+
+### tumr agent open
+
+```text
+Start a coding agent in a project folder and report what TUMR could see: app launched, workspace opened, MCP config written, MCP connected, session ready
+
+Usage: tumr agent open [OPTIONS] <AGENT> [FOLDER]
+
+Arguments:
+  <AGENT>   claude-code, codex, cursor, antigravity or copilot
+  [FOLDER]  Project folder; default: current folder
+
+Options:
+      --wait <WAIT>  Seconds to watch for the agent's MCP connection [default: 20]
+      --json         Machine-readable result
+  -h, --help         Print help
 ```
 
 ### tumr agent doctor

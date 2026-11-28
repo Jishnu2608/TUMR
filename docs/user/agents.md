@@ -57,6 +57,13 @@ The setup wizard's last step, **Agent**, lists the coding agents on your PC. For
 ### One-click install links
 `tumr agent link cursor` and `tumr agent link vscode` print an install link made for your PC (it contains the path of your `tumr.exe`). Open it, and Cursor or VS Code shows the `tumr` server and asks before adding it. The link adds only the server; `tumr agent setup` also adds the agent instructions. There are no install buttons on the website, because the path differs on every PC.
 
+## New projects and opening an agent
+When you create a project with TUMR Create ([Create a new project](create-project.md)), the agent is connected differently from `tumr agent setup`: its own settings (all projects) get the `tumr` server once, only if they do not have it yet, and the new project gets the agent's instructions file. The same step on its own:
+
+- `tumr agent connect <agent> --project <folder>` lists those changes as JSON; `--yes` makes them. Every existing file it changes is backed up first to `%USERPROFILE%\.tumr\backups\agent-config\`. `tumr agent setup` and `tumr agent doctor --fix` back up the same way.
+- `tumr agent open <agent> [folder]` starts the agent in a project folder (Claude Code and the Codex CLI in a new PowerShell window, Cursor, Antigravity and VS Code with the folder) and reports what TUMR could see: app launched, workspace opened, MCP config written, MCP connected, session ready. A step TUMR could not see is reported as such, never as done. The limits of each agent are in [Create a new project](create-project.md#opening-the-agent).
+- `tumr agent clients` shows each agent's state: **ready** (installed, connected), **not-configured** (installed; `tumr agent setup` or `connect` connects it), **not-installed**, or **unsupported** (found, but TUMR cannot start it).
+
 ## Check a connection
 - `tumr agent clients` lists the coding agents found on your PC and whether each one is connected (`--json` adds the config file paths and the exact entries).
 - `tumr agent doctor [agent]` checks every connected agent end to end: the config entry, the `tumr.exe` it points at, the agent's token, a real MCP handshake (the same start-up the agent does) and the agent's last tool call. Each problem comes with the command that fixes it.

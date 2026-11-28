@@ -39,11 +39,47 @@ export async function mockAgent(req: { action: string; client?: string; remove?:
       id: cid,
       name,
       installed,
+      state: !installed ? "not-installed" : connected[cid] ? "ready" : "not-configured",
       project_connected: !!connected[cid] && !userScoped.has(cid),
       user_connected: !!connected[cid] && userScoped.has(cid),
       project_config: cid === "claude-desktop" ? null : `${project}\\.config`,
       user_config: String.raw`C:\Users\you\.config`,
     }));
+  }
+  // CRT-E: `tumr agent connect` and `tumr agent open` (the Create Project wizard)
+  if (req.action === "connect_plan" || req.action === "connect_apply") {
+    const apply = req.action === "connect_apply";
+    if (apply) connected[id] = true;
+    return {
+      client: id,
+      name: id,
+      user_connected_before: userScoped.has(id),
+      client_exists: !!connected[id],
+      up_to_date: false,
+      applied: apply,
+      backup: apply ? String.raw`C:\Users\you\.tumr\backups\agent-config\1795820000-1234` : null,
+      changes: [
+        ...(userScoped.has(id) ? [] : [{ path: String.raw`C:\Users\you\.cursor\mcp.json`, action: "change", diff: entryDiff(id) }]),
+        { path: String.raw`D:\Work\My Apps\My App\.cursor\rules\tumr-runtime.mdc`, action: "create", diff: "+ ---\n+ description: Run and check the user's Android app …\n+ alwaysApply: true\n+ ---" },
+      ],
+    };
+  }
+  if (req.action === "open") {
+    await new Promise((r) => setTimeout(r, 1200));
+    const codex = id === "codex";
+    return {
+      agent: id,
+      launched: true,
+      steps: [
+        { step: "mcp-config", label: "MCP config written", status: "verified", detail: String.raw`C:\Users\you\.cursor\mcp.json starts tumr` },
+        { step: "app-launched", label: "app launched", status: "verified", detail: codex ? "the Codex app runs (ChatGPT.exe)" : "Cursor runs (Cursor.exe)" },
+        codex
+          ? { step: "workspace-opened", label: "workspace opened", status: "manual", detail: "the Codex app has no supported way to be given a folder: in the app, open the project" }
+          : { step: "workspace-opened", label: "workspace opened", status: "verified", detail: 'its window shows the folder: "My App - Cursor"' },
+        { step: "mcp-connected", label: "MCP connected", status: "not-verified", detail: "not seen within 20 s: make sure tumr is switched on in Cursor Settings → MCP" },
+        { step: "session-ready", label: "session ready", status: "not-verified", detail: "TUMR sees this when the agent first uses a TUMR tool (give it a task)" },
+      ],
+    };
   }
   if (req.action === "plan" || req.action === "apply") {
     if (req.action === "apply") connected[id] = !req.remove;

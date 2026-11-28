@@ -46,6 +46,8 @@ pub struct ApiState {
     pub shutdown_requested: Notify,
     /// The latest install job (INS-003).
     pub install_job: Mutex<Option<Arc<tumr_installer::engine::Job>>>,
+    /// CRT-A: the latest TUMR Create job.
+    pub create_job: Mutex<Option<Arc<crate::create_api::CreateJob>>>,
     /// Licence texts this Core has shown (id → SHA-256); only these can be accepted.
     pub offered_licences: Mutex<std::collections::HashMap<String, String>>,
     /// Set when an install changed the machine; the next plan rescans.
@@ -124,6 +126,7 @@ impl ApiState {
             db: Arc::new(Mutex::new(db)),
             shutdown_requested: Notify::new(),
             install_job: Mutex::new(None),
+            create_job: Mutex::new(None),
             offered_licences: Mutex::new(std::collections::HashMap::new()),
             scan_stale: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             adb_port: tumr_device::server::DEFAULT_PORT,
@@ -198,6 +201,11 @@ pub fn required_scope(method: &str) -> Option<Scope> {
         | methods::INSTALL_ACCEPT_LICENCE
         | methods::INSTALL_START
         | methods::INSTALL_CANCEL
+        | methods::PROJECT_CREATE_FRAMEWORKS
+        | methods::PROJECT_CREATE_CHECK
+        | methods::PROJECT_CREATE_START
+        | methods::PROJECT_CREATE_STATUS
+        | methods::PROJECT_CREATE_CANCEL
         | methods::AUTH_CLIENT_CREATE
         | methods::AUTH_CLIENT_LIST
         | methods::AUTH_CLIENT_REVOKE
@@ -254,6 +262,7 @@ fn is_slow(method: &str) -> bool {
             | methods::PROJECT_PLAN
             | methods::INSTALL_PREPARE
             | methods::INSTALL_START
+            | methods::PROJECT_CREATE_START
             | methods::COMPONENTS_LIST
             | methods::COMPONENTS_REPAIR
             | methods::COMPONENTS_REMOVE
@@ -485,6 +494,38 @@ fn dispatch_checked(state: &ApiState, conn: &mut Connection, req: &Request) -> R
         methods::INSTALL_CANCEL => with_params(id, &req.params, |id, p: JobParams| {
             crate::install_api::cancel(state, id, &p)
         }),
+        methods::PROJECT_CREATE_FRAMEWORKS => crate::create_api::frameworks(id),
+        methods::PROJECT_CREATE_CHECK => {
+            with_params(id, &req.params, |id, p: tumr_create::CreateRequest| {
+                crate::create_api::check(id, &p)
+            })
+        }
+        methods::PROJECT_CREATE_START => {
+            let client = conn.principal.as_ref().map(|p| p.client_id.clone());
+            with_params(id, &req.params, |id, p: tumr_create::CreateRequest| {
+                crate::create_api::start(state, id, client.as_deref(), &p)
+            })
+        }
+        methods::PROJECT_CREATE_STATUS => {
+            let params = if req.params.is_null() {
+                serde_json::json!({})
+            } else {
+                req.params.clone()
+            };
+            with_params(id, &params, |id, p: JobParams| {
+                crate::create_api::status(state, id, &p)
+            })
+        }
+        methods::PROJECT_CREATE_CANCEL => {
+            let params = if req.params.is_null() {
+                serde_json::json!({})
+            } else {
+                req.params.clone()
+            };
+            with_params(id, &params, |id, p: JobParams| {
+                crate::create_api::cancel(state, id, &p)
+            })
+        }
         methods::PING => ok(id, &Pong { pong: true }),
         methods::AUTH_LOGIN => login(state, conn, id, &req.params),
         methods::INFO => ok(
@@ -590,7 +631,26 @@ pub(crate) fn build_plan(
     RpcError,
 > {
     let root = std::path::Path::new(&p.path);
-    crate::project_api::check_dir(&p.path)?;
+    // CRT-A: a project that does not exist yet (TUMR Create) is planned from its framework
+    let new_framework = match p.framework.as_deref() {
+        Some(id) => Some(tumr_create::Framework::parse(id).ok_or_else(|| {
+            RpcError::new(
+                codes::INVALID_PARAMS,
+                format!(
+                    "unknown framework '{id}'; known: expo, react-native, flutter, kotlin, java"
+                ),
+            )
+        })?),
+        None => None,
+    };
+    if new_framework.is_none() {
+        crate::project_api::check_dir(&p.path)?;
+    } else if !root.is_absolute() {
+        return Err(RpcError::new(
+            codes::INVALID_PARAMS,
+            format!("'{}' is not a full path", p.path),
+        ));
+    }
     let pack = tumr_resolver::pack::Pack::bundled()
         .map_err(|e| RpcError::new(codes::INTERNAL_ERROR, e.to_string()))?;
     let needs_rescan = state
@@ -621,7 +681,10 @@ pub(crate) fn build_plan(
         None => scan_and_store(state)
             .map_err(|e| RpcError::new(codes::INTERNAL_ERROR, e.to_string()))?,
     };
-    let mut facts = tumr_resolver::project::read(root);
+    let mut facts = match new_framework {
+        Some(f) => tumr_resolver::project::new_project_facts(f.detected_as(), &p.path),
+        None => tumr_resolver::project::read(root),
+    };
     // `flutter.*` values come from the installed Flutter SDK (NDK, SDK levels)
     if let Some(f) = env.tools.iter().find(|t| t.name == "flutter") {
         let bin = std::path::Path::new(&f.path);

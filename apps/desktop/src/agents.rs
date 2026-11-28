@@ -16,7 +16,7 @@ use serde_json::Value;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentRequest {
-    /// `clients`, `plan`, `apply`, `doctor` or `fix`.
+    /// `clients`, `plan`, `apply`, `doctor`, `fix`, `connect_plan`, `connect_apply` or `open`.
     pub action: String,
     pub client: Option<String>,
     pub project: Option<String>,
@@ -80,6 +80,26 @@ pub fn arguments(r: &AgentRequest) -> Result<Vec<String>, String> {
             if r.action == "apply" {
                 a.push("--yes".into());
             }
+        }
+        // CRT-E: the Create Project wizard (CRT-D5 connection and CRT-D launch, as in the CLI)
+        "connect_plan" | "connect_apply" => {
+            a.push("connect".into());
+            a.push(need_client()?);
+            if r.action == "connect_apply" {
+                a.push("--yes".into());
+            }
+        }
+        "open" => {
+            let folder = project
+                .clone()
+                .ok_or_else(|| "no project folder given".to_string())?;
+            return Ok(vec![
+                "agent".into(),
+                "open".into(),
+                need_client()?,
+                folder,
+                "--json".into(),
+            ]);
         }
         "doctor" | "fix" => {
             a.push("doctor".into());
@@ -151,6 +171,45 @@ mod tests {
             scope: None,
             remove: false,
         }
+    }
+
+    #[test]
+    fn create_wizard_actions_are_fixed_command_lines() {
+        let dir = std::env::temp_dir().display().to_string();
+        let mut r = req("connect_plan", Some("cursor"));
+        r.project = Some(dir.clone());
+        assert_eq!(
+            arguments(&r).unwrap(),
+            [
+                "agent",
+                "connect",
+                "cursor",
+                "--project",
+                dir.as_str(),
+                "--json"
+            ]
+        );
+        r.action = "connect_apply".into();
+        assert_eq!(
+            arguments(&r).unwrap(),
+            [
+                "agent",
+                "connect",
+                "cursor",
+                "--yes",
+                "--project",
+                dir.as_str(),
+                "--json"
+            ]
+        );
+        r.action = "open".into();
+        assert_eq!(
+            arguments(&r).unwrap(),
+            ["agent", "open", "cursor", dir.as_str(), "--json"]
+        );
+        // open needs a real folder and a known agent
+        assert!(arguments(&req("open", Some("cursor"))).is_err());
+        assert!(arguments(&req("connect_plan", Some("notepad"))).is_err());
     }
 
     #[test]

@@ -1,0 +1,19 @@
+[package]
+name = "tumr-create"
+description = "TUMR Create (CRT-A): the one engine behind `tumr create` and the desktop Create Project wizard: request validation, safe destinations, framework creators, project metadata, rollback."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tumr-platform = { path = "../tumr-platform" }
+tumr-resolver = { path = "../tumr-resolver" }
+
+[lints]
+workspace = true

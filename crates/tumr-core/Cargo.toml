@@ -21,6 +21,7 @@ tumr-api = { path = "../tumr-api" }
 tumr-storage = { path = "../tumr-storage" }
 tumr-env = { path = "../tumr-env" }
 tumr-resolver = { path = "../tumr-resolver" }
+tumr-create = { path = "../tumr-create" }
 tumr-installer = { path = "../tumr-installer" }
 tumr-device = { path = "../tumr-device" }
 tumr-supervisor = { path = "../tumr-supervisor" }

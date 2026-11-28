@@ -461,3 +461,11 @@ Tools the runtime downloads at the user's request (JDK, Android SDK and emulator
 | js-tokens | 4.0.0 | MIT |
 | @tauri-apps/api | 2.12.4 | Apache-2.0 OR MIT |
 
+## Files in the TUMR Create Java template (1)
+
+TUMR Create writes these into new Java projects unchanged (`crates/tumr-create/templates/java`).
+
+| Component | Version | Licence | Source |
+|---|---|---|---|
+| Gradle wrapper (`gradle-wrapper.jar`, `gradlew`, `gradlew.bat`) | 9.1.0 | Apache-2.0 | https://github.com/gradle/gradle |
+

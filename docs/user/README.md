@@ -5,6 +5,7 @@ Toolchain Universal Mobile Runtime shows your Android app running on an emulator
 | Guide | For |
 |---|---|
 | [Getting started](getting-started.md) | Install, first setup, first app, connect your agent |
+| [Create a new project](create-project.md) | A new Expo, React Native, Flutter, Kotlin or Java project, connected to your agent (`tumr create` or the app) |
 | [Requirements](requirements.md) | What your PC needs, and what the runtime installs for you |
 | [Agents](agents.md) | Claude Code, Codex and other MCP clients: setup, tools, permissions |
 | [VS Code](vscode.md) | The extension: run on the emulator, phone preview panel, Problems panel, Copilot agent mode |

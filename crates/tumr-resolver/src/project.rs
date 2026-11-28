@@ -70,6 +70,41 @@ pub struct ProjectFacts {
     pub notes: Vec<String>,
 }
 
+/// CRT-A: the facts of a project that does not exist yet (TUMR Create plans its tools before the
+/// folder is made). Versions are unknown, so the resolver uses the Knowledge Pack's defaults.
+#[must_use]
+pub fn new_project_facts(framework: Framework, root: &str) -> ProjectFacts {
+    let android = |dir: &str| AndroidFacts {
+        dir: dir.into(),
+        gradle: None,
+        agp: None,
+        compile_sdk: None,
+        min_sdk: None,
+        target_sdk: None,
+        ndk_version: None,
+        uses_cmake: false,
+        cmake_version: None,
+        build_tools: None,
+    };
+    ProjectFacts {
+        root: root.into(),
+        framework,
+        android: match framework {
+            Framework::AndroidNative => Some(android(".")),
+            Framework::Flutter | Framework::ReactNative => Some(android("android")),
+            Framework::Expo | Framework::Unknown => None,
+        },
+        flutter_constraint: None,
+        dart_constraint: None,
+        flutter_pinned: None,
+        react_native: None,
+        expo: None,
+        node_constraint: None,
+        package_manager: None,
+        notes: vec!["a new project: versions come from the Knowledge Pack's defaults".into()],
+    }
+}
+
 /// Reads a project folder.
 #[must_use]
 pub fn read(root: &Path) -> ProjectFacts {

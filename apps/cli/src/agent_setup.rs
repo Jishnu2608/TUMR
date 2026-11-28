@@ -9,6 +9,7 @@
 //!
 //! The clients and their file formats come from [`crate::agent_clients`].
 
+use std::fmt::Write as _;
 use std::io::{BufRead as _, BufReader, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::{ExitCode, Stdio};
@@ -407,10 +408,181 @@ pub fn plan(
     Ok(out)
 }
 
+/// CRT-D5: copies every existing file the changes would alter or delete into a new folder
+/// `<root>\backups\agent-config\<unix time>-<pid>\` (`1-mcp.json`, `2-.claude.json`, …) with an
+/// `index.txt` that names each original. Returns the folder, or `None` when no existing file
+/// changes. Nothing is changed when a copy fails.
+pub fn backup_to(changes: &[Change], root: &Path) -> Result<Option<PathBuf>, String> {
+    let existing: Vec<&Change> = changes.iter().filter(|c| c.old.is_some()).collect();
+    if existing.is_empty() {
+        return Ok(None);
+    }
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs());
+    let dir = root
+        .join("backups")
+        .join("agent-config")
+        .join(format!("{stamp}-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).map_err(|e| format!("backup {}: {e}", dir.display()))?;
+    let mut index = String::new();
+    for (i, c) in existing.iter().enumerate() {
+        let name = c
+            .path
+            .file_name()
+            .map_or_else(|| "file".into(), |n| n.to_string_lossy().into_owned());
+        let copy = dir.join(format!("{}-{name}", i + 1));
+        std::fs::copy(&c.path, &copy).map_err(|e| {
+            format!(
+                "cannot back up {} (nothing was changed): {e}",
+                c.path.display()
+            )
+        })?;
+        let _ = writeln!(
+            index,
+            "{} <- {}",
+            copy.file_name().unwrap_or_default().to_string_lossy(),
+            c.path.display()
+        );
+    }
+    std::fs::write(dir.join("index.txt"), index)
+        .map_err(|e| format!("backup {}: {e}", dir.display()))?;
+    Ok(Some(dir))
+}
+
+/// [`apply`] after backing up every existing file it changes into TUMR's data folder
+/// (CRT-D5: a backup before any change).
+pub fn apply_backed(changes: &[Change], project: &Path) -> Result<(), String> {
+    if let Ok(paths) = tumr_core::paths::CorePaths::resolve() {
+        if let Some(dir) = backup_to(changes, paths.root())? {
+            println!("  (backed up the files it changes to {})", dir.display());
+        }
+    }
+    apply(changes, project)
+}
+
+/// CRT-D5: the project half of "user scope once, plus project instructions": only the agent's
+/// project instructions file (no project MCP entry, so the `tumr` server is not listed twice,
+/// and no project hook, which would run next to the user one). Empty when the agent has no
+/// project instructions or they are up to date.
+pub fn project_instructions_plan(c: &Client, project: &Path) -> Result<Vec<Change>, String> {
+    let mut out = Vec::new();
+    match instructions_target(c, Scope::Project) {
+        Some(InstrTarget::Own(place)) => {
+            let path = resolve(place, project)?;
+            let old = read(&path);
+            out.push(Change {
+                path,
+                old,
+                new: Some(instructions_text(c)),
+            });
+        }
+        Some(InstrTarget::Section(place)) => {
+            let path = resolve(place, project)?;
+            let old = read(&path);
+            let new = Some(agents_md(old.as_deref()));
+            out.push(Change { path, old, new });
+        }
+        None => {}
+    }
+    out.retain(|ch| ch.old != ch.new);
+    Ok(out)
+}
+
+/// CRT-D5, for a new project: the user-scope entry (with its instructions and hook) only when
+/// no user config starts `tumr` yet, plus the project's instructions. One change per file.
+pub fn new_project_plan(c: &Client, project: &Path, exe: &str) -> Result<Vec<Change>, String> {
+    let mut changes = if user_connected(c) {
+        Vec::new()
+    } else {
+        plan(c, Scope::User, project, exe, false)?
+    };
+    for ch in project_instructions_plan(c, project)? {
+        if !changes.iter().any(|x| x.path == ch.path) {
+            changes.push(ch);
+        }
+    }
+    Ok(changes)
+}
+
+/// `tumr agent connect <client> --project <folder> [--yes] --json`: [`new_project_plan`] for
+/// the desktop's Create Project wizard (the CLI wizard uses the same plan). Without `--yes` it
+/// only lists the changes; with it, creates the agent client if needed, backs up and writes.
+pub async fn connect(
+    target: &CoreTarget,
+    agent: &str,
+    project: Option<PathBuf>,
+    yes: bool,
+) -> ExitCode {
+    let Some(c) = agent_clients::find(agent) else {
+        return fail(&format!(
+            "unknown agent '{agent}'; known: {}",
+            agent_clients::ids(false)
+        ));
+    };
+    let result = async {
+        let exe = current_exe()?;
+        let project = project_dir(project)?;
+        let changes = new_project_plan(c, &project, &exe)?;
+        let has_token = token_path(target, c.id).is_file();
+        let listed: Vec<Value> = changes
+            .iter()
+            .map(|ch| {
+                let action = match (&ch.old, &ch.new) {
+                    (None, _) => "create",
+                    (Some(_), Some(_)) => "change",
+                    (Some(_), None) => "delete",
+                };
+                json!({
+                    "path": ch.path.display().to_string(),
+                    "action": action,
+                    "diff": diff(ch.old.as_deref().unwrap_or(""), ch.new.as_deref().unwrap_or("")),
+                })
+            })
+            .collect();
+        let up_to_date = changes.is_empty() && has_token;
+        let mut backup = None;
+        if yes && !up_to_date {
+            ensure_client(target, c.id, &AGENT_SCOPES.map(String::from)).await?;
+            if let Ok(paths) = tumr_core::paths::CorePaths::resolve() {
+                backup = backup_to(&changes, paths.root())?;
+            }
+            apply(&changes, &project)?;
+        }
+        Ok::<Value, String>(json!({
+            "client": c.id,
+            "name": c.name,
+            "project": project.display().to_string(),
+            "user_connected_before": user_connected(c),
+            "client_exists": has_token,
+            "changes": listed,
+            "up_to_date": up_to_date,
+            "applied": yes && !up_to_date,
+            "backup": backup.map(|b| b.display().to_string()),
+        }))
+    }
+    .await;
+    match result {
+        Ok(v) => {
+            println!("{}", serde_json::to_string_pretty(&v).unwrap_or_default());
+            ExitCode::SUCCESS
+        }
+        Err(e) => fail(&e),
+    }
+}
+
+/// Does the client's user-scope config already start the runtime?
+#[must_use]
+pub fn user_connected(c: &Client) -> bool {
+    c.user_config
+        .and_then(|p| p.resolve(None))
+        .is_some_and(|p| c.configured_in(&p))
+}
+
 /// Writes the changes. Deleting a file inside `project` also removes the folders that are left
 /// empty, up to the project folder (setup created them); outside the project only our own
 /// `tumr-runtime` folder is removed.
-fn apply(changes: &[Change], project: &Path) -> Result<(), String> {
+pub fn apply(changes: &[Change], project: &Path) -> Result<(), String> {
     for c in changes {
         if let Some(text) = &c.new {
             if let Some(dir) = c.path.parent() {
@@ -434,7 +606,7 @@ fn apply(changes: &[Change], project: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn show(changes: &[Change]) {
+pub fn show(changes: &[Change]) {
     for c in changes {
         let verb = match (&c.old, &c.new) {
             (None, _) => "create",
@@ -460,7 +632,7 @@ fn ask(question: &str) -> bool {
     matches!(answer.trim(), "y" | "Y" | "yes")
 }
 
-fn current_exe() -> Result<String, String> {
+pub fn current_exe() -> Result<String, String> {
     std::env::current_exe()
         .map(|p| p.display().to_string())
         .map_err(|e| format!("cannot locate tumr.exe: {e}"))
@@ -575,7 +747,7 @@ pub async fn setup(target: &CoreTarget, agent: &str, o: SetupOptions) -> ExitCod
         if let Err(e) = ensure_client(target, c.id, &AGENT_SCOPES.map(String::from)).await {
             return fail(&e);
         }
-        if let Err(e) = apply(&changes, &project) {
+        if let Err(e) = apply_backed(&changes, &project) {
             return fail(&e);
         }
     }
@@ -623,7 +795,7 @@ async fn setup_json(
         .collect();
     if apply_now {
         if remove {
-            apply(changes, project)?;
+            apply_backed(changes, project)?;
             let keep = still_connected(c, scope, project).is_some();
             if keep {
                 // the other scope still uses this client's token
@@ -641,7 +813,7 @@ async fn setup_json(
             }
         } else {
             ensure_client(target, c.id, &AGENT_SCOPES.map(String::from)).await?;
-            apply(changes, project)?;
+            apply_backed(changes, project)?;
         }
     }
     Ok(json!({
@@ -807,7 +979,7 @@ async fn remove(
         println!("Nothing changed.");
         return ExitCode::SUCCESS;
     }
-    if let Err(e) = apply(changes, project) {
+    if let Err(e) = apply_backed(changes, project) {
         return fail(&e);
     }
     if has_client {
@@ -1044,7 +1216,7 @@ pub fn repoint() -> ExitCode {
         for scope in [Scope::User, Scope::Project] {
             match strip_legacy(c, scope, &project) {
                 Ok(true) => match plan(c, scope, &project, &exe, false)
-                    .and_then(|ch| apply(&ch, &project))
+                    .and_then(|ch| apply_backed(&ch, &project))
                 {
                     Ok(()) => {
                         changed += 1;
@@ -1072,7 +1244,8 @@ pub fn repoint() -> ExitCode {
         if command.eq_ignore_ascii_case(&exe) {
             continue;
         }
-        match plan(c, Scope::User, &project, &exe, false).and_then(|ch| apply(&ch, &project)) {
+        match plan(c, Scope::User, &project, &exe, false).and_then(|ch| apply_backed(&ch, &project))
+        {
             Ok(()) => {
                 changed += 1;
                 println!("{}: now runs {exe} (was {command})", c.name);
@@ -1513,7 +1686,9 @@ pub async fn doctor(
         let mut fixed = Vec::new();
         if fix {
             for scope in &stale {
-                match plan(c, *scope, &project, &exe, false).and_then(|ch| apply(&ch, &project)) {
+                match plan(c, *scope, &project, &exe, false)
+                    .and_then(|ch| apply_backed(&ch, &project))
+                {
                     Ok(()) => fixed.push(scope.word()),
                     Err(e) => return fail(&e),
                 }
@@ -1962,5 +2137,78 @@ mod tests {
     fn handshake_reports_a_program_that_cannot_start() {
         let e = handshake(r"C:\nowhere\tumr.exe", &[], Duration::from_secs(1)).unwrap_err();
         assert!(e.starts_with("cannot start it"), "{e}");
+    }
+    #[test]
+    fn backups_copy_only_files_that_exist_and_name_the_originals() {
+        let dir = std::env::temp_dir().join(format!("tumr-backup-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let cfg = dir.join("mcp.json");
+        std::fs::write(&cfg, "{\"mcpServers\":{\"other\":{}}}").unwrap();
+        let changes = vec![
+            Change {
+                path: cfg.clone(),
+                old: Some("{\"mcpServers\":{\"other\":{}}}".into()),
+                new: Some("x".into()),
+            },
+            Change {
+                path: dir.join("new.md"),
+                old: None,
+                new: Some("y".into()),
+            },
+        ];
+        let root = dir.join("data");
+        let b = backup_to(&changes, &root).unwrap().unwrap();
+        assert!(b.starts_with(root.join("backups").join("agent-config")));
+        assert_eq!(
+            std::fs::read_to_string(b.join("1-mcp.json")).unwrap(),
+            std::fs::read_to_string(&cfg).unwrap()
+        );
+        let index = std::fs::read_to_string(b.join("index.txt")).unwrap();
+        assert!(
+            index.contains("1-mcp.json <- ")
+                && index.contains("mcp.json")
+                && !index.contains("new.md")
+        );
+        // nothing existing changes: no backup folder
+        assert!(backup_to(&changes[1..], &dir.join("data2"))
+            .unwrap()
+            .is_none());
+        assert!(!dir.join("data2").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn project_instructions_plan_writes_no_server_entry_or_hook() {
+        let dir = std::env::temp_dir().join(format!("tumr-instr-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        for id in ["claude-code", "codex", "cursor", "vscode", "antigravity"] {
+            let c = agent_clients::find(id).unwrap();
+            let ch = project_instructions_plan(c, &dir).unwrap();
+            assert_eq!(ch.len(), 1, "{id}");
+            let p = ch[0].path.display().to_string();
+            assert!(
+                !p.ends_with("mcp.json")
+                    && !p.ends_with("config.toml")
+                    && !p.contains("hooks")
+                    && !p.contains("settings"),
+                "{id}: {p}"
+            );
+            apply(&ch, &dir).unwrap();
+            assert_eq!(
+                project_instructions_plan(c, &dir).unwrap().len(),
+                0,
+                "{id}: a re-run changes nothing"
+            );
+        }
+        // Claude Desktop has no project instructions
+        assert_eq!(
+            project_instructions_plan(agent_clients::find("claude-desktop").unwrap(), &dir)
+                .unwrap()
+                .len(),
+            0
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

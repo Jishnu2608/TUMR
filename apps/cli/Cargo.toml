@@ -20,6 +20,7 @@ tumr-platform = { path = "../../crates/tumr-platform" }
 tumr-env = { path = "../../crates/tumr-env" }
 tumr-resolver = { path = "../../crates/tumr-resolver" }
 tumr-installer = { path = "../../crates/tumr-installer" }
+tumr-create = { path = "../../crates/tumr-create" }
 tumr-storage = { path = "../../crates/tumr-storage" }
 tumr-elevate = { path = "../../helpers/elevated-helper" }
 # Command-line parsing (subcommands, --help, --version).

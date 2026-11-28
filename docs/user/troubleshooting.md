@@ -208,6 +208,10 @@ Start with `tumr agent doctor`: it checks every connected agent's config entry, 
 | Fix | Answer in the preview window or with `tumr approvals allow <id> [--always]`. `--always` (or `tumr agent grant <agent> <folder>`) stops it asking for that folder. |
 
 
+## Creating a project
+
+Problems while TUMR Create makes a new project (a folder that is not empty, a missing creation tool, a template download that fails, files TUMR did not expect, an agent that opened but did not connect) are listed in [Create a new project](create-project.md#troubleshooting). A failed or cancelled creation removes what it made; you can try again at once.
+
 ## Still stuck
 
 `tumr doctor` checks the machine. When reporting a problem, attach `tumr doctor --json`, `tumr problems --json` and the newest file in `%USERPROFILE%\.tumr\logs`. Output from `tumr` is already sanitised; check raw log files before you share them.

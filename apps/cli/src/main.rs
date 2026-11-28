@@ -9,8 +9,10 @@
 mod agent_clients;
 mod agent_cmd;
 mod agent_hook;
+mod agent_open;
 mod agent_setup;
 mod core_process;
+mod create_cmd;
 mod device_cmd;
 mod diag_cmd;
 mod env_print;
@@ -51,6 +53,49 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// TUMR Create: a new, minimal Expo, React Native, Flutter, Kotlin or Java project. Asks for
+    /// what the flags leave out (in a terminal). Exit codes: 0 created, 1 failed (rolled back),
+    /// 2 invalid input, 3 cancelled, 4 a creation tool is missing.
+    Create {
+        /// expo, react-native, flutter, kotlin or java.
+        #[arg(long)]
+        framework: Option<String>,
+        /// The project's name (also the new folder's name with --parent).
+        #[arg(long)]
+        name: Option<String>,
+        /// Android application id; default com.example.<name>.
+        #[arg(long)]
+        package_id: Option<String>,
+        /// An existing, empty folder that becomes the project.
+        #[arg(long)]
+        path: Option<std::path::PathBuf>,
+        /// A folder in which TUMR creates a new folder named after the project (default: the
+        /// current folder).
+        #[arg(long)]
+        parent: Option<std::path::PathBuf>,
+        /// claude-code, codex, cursor, antigravity, copilot or none.
+        #[arg(long)]
+        agent: Option<String>,
+        /// Do not trust the new folder (its build scripts then need `tumr trust` first).
+        #[arg(long)]
+        no_trust: bool,
+        /// Install a missing creation tool without asking first (licences are still shown).
+        #[arg(long)]
+        install: bool,
+        /// Open the agent in the project afterwards.
+        #[arg(long, conflicts_with = "no_open")]
+        open: bool,
+        /// Do not open the agent.
+        #[arg(long)]
+        no_open: bool,
+        /// Never ask: values with a default take it (package id, a new folder in the current
+        /// folder, trust, no agent), confirmations are given. --framework and --name are needed.
+        #[arg(long)]
+        yes: bool,
+        /// Machine-readable result; never asks.
+        #[arg(long)]
+        json: bool,
+    },
     /// Show whether the Runtime Core is running.
     Status {
         /// Print machine-readable JSON.
@@ -477,6 +522,35 @@ enum AgentAction {
     /// DEC-055: point every all-projects agent entry that runs another tumr.exe at this one (the
     /// installer runs it after an install). Changes nothing else and starts nothing.
     Repoint,
+    /// Connect an agent to a new project: the `tumr` server in the agent's own settings once (if
+    /// missing), plus this project's instructions. Without --yes only lists the changes (JSON).
+    Connect {
+        /// claude-code, codex, cursor, claude-desktop, vscode or antigravity.
+        agent: String,
+        /// Project folder; default: current folder.
+        #[arg(long)]
+        project: Option<std::path::PathBuf>,
+        /// Make the changes (backed up first).
+        #[arg(long)]
+        yes: bool,
+        /// Machine-readable output (always JSON today).
+        #[arg(long)]
+        json: bool,
+    },
+    /// Start a coding agent in a project folder and report what TUMR could see: app launched,
+    /// workspace opened, MCP config written, MCP connected, session ready.
+    Open {
+        /// claude-code, codex, cursor, antigravity or copilot.
+        agent: String,
+        /// Project folder; default: current folder.
+        folder: Option<std::path::PathBuf>,
+        /// Seconds to watch for the agent's MCP connection.
+        #[arg(long, default_value_t = 20)]
+        wait: u64,
+        /// Machine-readable result.
+        #[arg(long)]
+        json: bool,
+    },
     /// Check each connected agent end to end: config entry, program path, token, a real MCP
     /// handshake and its last call. `--fix` repoints entries at this tumr.exe.
     Doctor {
@@ -634,8 +708,21 @@ enum InputCmd {
     Key { name: String },
 }
 
-#[allow(clippy::too_many_lines)] // one flat dispatch over all commands
+/// The command line parser and the dispatch below need more stack than the main thread's 1 MB in
+/// debug builds (clap's derive code for this many commands); run them on a thread with 8 MB.
 fn main() -> ExitCode {
+    std::thread::Builder::new()
+        .name("tumr".into())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(run)
+        .map_or_else(
+            |e| fail(&format!("cannot start: {e}")),
+            |t| t.join().unwrap_or(ExitCode::FAILURE),
+        )
+}
+
+#[allow(clippy::too_many_lines)] // one flat dispatch over all commands
+fn run() -> ExitCode {
     let cli = Cli::parse();
     let rt = match tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -655,6 +742,11 @@ fn main() -> ExitCode {
             matches!(cli.command, Command::Mcp { .. } | Command::Rpc { .. } | Command::Agent { .. }),
         );
         let code = match cli.command {
+            Command::Create { framework, name, package_id, path, parent, agent, no_trust, install, open, no_open, yes, json } => {
+                let open = if open { Some(true) } else if no_open { Some(false) } else { None };
+                let a = create_cmd::CreateArgs { framework, name, package_id, path, parent, agent, no_trust, install, open, yes, json };
+                Box::pin(create_cmd::create(&target, a)).await
+            }
             Command::Status { json } => status(&target, json).await,
             Command::Start => start(&target).await,
             Command::Stop => stop(&target).await,
@@ -793,6 +885,10 @@ fn main() -> ExitCode {
                     agent_setup::doctor(&target, agent, project, fix, json).await
                 }
                 AgentAction::Repoint => agent_setup::repoint(),
+                AgentAction::Connect { agent, project, yes, json: _ } => Box::pin(agent_setup::connect(&target, &agent, project, yes)).await,
+                AgentAction::Open { agent, folder, wait, json } => {
+                    Box::pin(agent_open::open(&target, &agent, folder, agent_open::OpenOptions { wait, json })).await
+                }
                 AgentAction::Add { name, scopes } => agent_cmd::add(&target, &name, scopes).await,
                 AgentAction::List { json } => agent_cmd::list(&target, json).await,
                 AgentAction::Clients { project, json } => {
@@ -1070,7 +1166,12 @@ async fn plan(
     if started && !json {
         println!("(started the Runtime Core)\n");
     }
-    let params = serde_json::to_value(ProjectPlanParams { path: dir, rescan }).unwrap_or_default();
+    let params = serde_json::to_value(ProjectPlanParams {
+        path: dir,
+        rescan,
+        framework: None,
+    })
+    .unwrap_or_default();
     let out: Value = match client.call(methods::PROJECT_PLAN, params).await {
         Ok(v) => v,
         Err(e) => return fail(&e.to_string()),

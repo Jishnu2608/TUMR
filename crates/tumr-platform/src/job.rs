@@ -11,9 +11,10 @@ use std::process::Child;
 
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
 use windows_sys::Win32::System::JobObjects::{
-    AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
-    SetInformationJobObject, TerminateJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    AssignProcessToJobObject, CreateJobObjectW, JobObjectBasicAccountingInformation,
+    JobObjectExtendedLimitInformation, QueryInformationJobObject, SetInformationJobObject,
+    TerminateJobObject, JOBOBJECT_BASIC_ACCOUNTING_INFORMATION,
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
 };
 
 /// A Job Object that terminates all member processes when dropped.
@@ -72,6 +73,40 @@ impl KillOnCloseJob {
             return Err(io::Error::last_os_error());
         }
         Ok(())
+    }
+
+    /// How many processes are still in the job (`None` if the query fails).
+    #[must_use]
+    pub fn active_processes(&self) -> Option<u32> {
+        // SAFETY: plain-data struct; zero is a valid initial value.
+        let mut info: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION = unsafe { std::mem::zeroed() };
+        let size = u32::try_from(std::mem::size_of_val(&info)).unwrap_or(0);
+        // SAFETY: `info` matches JobObjectBasicAccountingInformation and `size` is its size.
+        let ok = unsafe {
+            QueryInformationJobObject(
+                self.handle,
+                JobObjectBasicAccountingInformation,
+                (&raw mut info).cast(),
+                size,
+                std::ptr::null_mut(),
+            )
+        };
+        (ok != 0).then_some(info.ActiveProcesses)
+    }
+
+    /// Waits until no process is left in the job (termination is asynchronous: files and the
+    /// working folder of a terminated process stay in use for a moment). False on timeout.
+    #[must_use]
+    pub fn wait_empty(&self, limit: std::time::Duration) -> bool {
+        let end = std::time::Instant::now() + limit;
+        loop {
+            match self.active_processes() {
+                Some(0) => return true,
+                None => return false,
+                Some(_) if std::time::Instant::now() >= end => return false,
+                Some(_) => std::thread::sleep(std::time::Duration::from_millis(50)),
+            }
+        }
     }
 }
 
@@ -133,6 +168,22 @@ mod tests {
             wait_until(|| !is_running(grandchild.pid).unwrap()),
             "grandchild still running"
         );
+    }
+
+    #[test]
+    fn wait_empty_sees_the_members_go() {
+        let job = KillOnCloseJob::new().unwrap();
+        assert_eq!(job.active_processes(), Some(0));
+        let mut child = Command::new("cmd.exe")
+            .args(["/c", "ping -n 60 127.0.0.1 >nul"])
+            .spawn()
+            .unwrap();
+        job.assign(&child).unwrap();
+        assert!(job.active_processes().unwrap() >= 1);
+        assert!(!job.wait_empty(std::time::Duration::from_millis(100)));
+        job.terminate(1).unwrap();
+        assert!(job.wait_empty(std::time::Duration::from_secs(10)));
+        let _ = child.wait();
     }
 
     #[test]

@@ -3,8 +3,8 @@
 
 use windows_sys::Win32::Foundation::{BOOL, HWND, LPARAM};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    EnumWindows, GetWindowThreadProcessId, IsIconic, IsWindowVisible, SetForegroundWindow,
-    ShowWindow, SW_RESTORE,
+    EnumWindows, GetWindowTextW, GetWindowThreadProcessId, IsIconic, IsWindowVisible,
+    SetForegroundWindow, ShowWindow, SW_RESTORE,
 };
 
 struct Search {
@@ -49,9 +49,49 @@ pub fn focus_window_of(pid: u32) -> bool {
     true
 }
 
+unsafe extern "system" fn collect(hwnd: HWND, lparam: LPARAM) -> BOOL {
+    // SAFETY: `lparam` is the `Vec` passed to `EnumWindows` in `visible_titles`, alive for the
+    // whole call.
+    let out = unsafe { &mut *(lparam as *mut Vec<(u32, String)>) };
+    // SAFETY: plain queries on a window handle given by EnumWindows.
+    if unsafe { IsWindowVisible(hwnd) } == 0 {
+        return 1;
+    }
+    let mut buf = [0u16; 512];
+    // SAFETY: `buf` is writable for its full length, which is passed as the limit.
+    let n = unsafe { GetWindowTextW(hwnd, buf.as_mut_ptr(), 512) };
+    let Ok(n) = usize::try_from(n) else {
+        return 1;
+    };
+    if n == 0 {
+        return 1;
+    }
+    let mut pid = 0u32;
+    // SAFETY: as above.
+    unsafe { GetWindowThreadProcessId(hwnd, &raw mut pid) };
+    out.push((pid, String::from_utf16_lossy(&buf[..n.min(512)])));
+    1
+}
+
+/// The visible top-level windows that have a title: `(process id, title)`. CRT-D uses it to see
+/// whether an editor opened the project folder (its window title names the folder).
+#[must_use]
+pub fn visible_titles() -> Vec<(u32, String)> {
+    let mut out: Vec<(u32, String)> = Vec::new();
+    // SAFETY: `collect` only touches `out` through the pointer while EnumWindows runs.
+    unsafe { EnumWindows(Some(collect), (&raw mut out) as LPARAM) };
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn titles_have_text() {
+        // a headless test run may have no windows at all; every listed one has a title
+        assert!(visible_titles().iter().all(|(_, t)| !t.is_empty()));
+    }
 
     #[test]
     fn a_process_without_windows_is_not_found() {

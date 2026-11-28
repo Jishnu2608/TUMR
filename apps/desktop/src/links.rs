@@ -13,6 +13,7 @@ const DOCS_BASE: &str = "https://github.com/Jishnu2608/TUMR/blob/main/docs/user/
 /// The pages the app may open.
 const PAGES: &[&str] = &[
     "getting-started",
+    "create-project",
     "agents",
     "troubleshooting",
     "uninstall-and-data",

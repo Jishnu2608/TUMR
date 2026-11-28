@@ -189,6 +189,7 @@ fn toolchain(state: &ApiState, path: &str) -> Result<Tools, RpcError> {
         &ProjectPlanParams {
             path: path.to_string(),
             rescan: false,
+            framework: None,
         },
     )?;
     let missing: Vec<String> = plan

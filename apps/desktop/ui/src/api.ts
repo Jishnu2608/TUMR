@@ -50,7 +50,7 @@ export async function agentCli<T = any>(request: { action: string; client?: stri
 
 export type Step = "scan" | "project" | "plan" | "licences" | "install" | "ready" | "run" | "agents";
 
-export type DocsPage = "getting-started" | "agents" | "troubleshooting" | "uninstall-and-data" | "privacy-and-security" | "cli-reference";
+export type DocsPage = "getting-started" | "create-project" | "agents" | "troubleshooting" | "uninstall-and-data" | "privacy-and-security" | "cli-reference";
 
 /** The user guides (GitHub until the website has a domain, W2); the app opens fixed pages only. */
 const DOCS_BASE = "https://github.com/Jishnu2608/TUMR/blob/main/docs/user/";
@@ -73,9 +73,9 @@ export async function openDocs(page: DocsPage, anchor?: string): Promise<void> {
  * Windows' own folder picker (the app's `pick_folder` command); `null` when cancelled. The page gets
  * the chosen path only, no file system access. In a plain browser: a sample path (UI development).
  */
-export async function pickFolder(start?: string): Promise<string | null> {
-  if (!inTauri) return "D:\\Work\\my-app";
-  return invoke<string | null>("pick_folder", { start: start ?? null });
+export async function pickFolder(start?: string, purpose?: "parent" | "empty"): Promise<string | null> {
+  if (!inTauri) return purpose === "empty" ? "D:\\Work\\Empty App" : purpose === "parent" ? "D:\\Work\\My Apps" : "D:\\Work\\my-app";
+  return invoke<string | null>("pick_folder", { start: start ?? null, purpose: purpose ?? null });
 }
 
 /** UPD-001: a newer version on the configured update channel (`available` null: up to date). */

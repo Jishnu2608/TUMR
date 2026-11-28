@@ -35,6 +35,61 @@ const sampleProblems = [
   { fingerprint: "c1b2c3d4e5f60718", category: "network", origin: "environment", severity: "error", source: "gradle", message: "Could not GET 'https://dl.google.com/dl/android/maven2/x.pom'. Received status code 502", count: 1, seq: 3, first_seen_ms: 3, stack_frames: 0 },
 ];
 
+// CRT-E samples
+const createFrameworks = [
+  { id: "expo", name: "Expo", description: "React Native with Expo, TypeScript; runs in Expo Go without a native build", language: "typescript", creation_tools: ["node"], available: true },
+  { id: "react-native", name: "React Native", description: "React Native (Community CLI), TypeScript, with the native Android project", language: "typescript", creation_tools: ["node"], available: true },
+  { id: "flutter", name: "Flutter", description: "Flutter and Dart, with the Android platform project", language: "dart", creation_tools: ["flutter", "git"], available: true },
+  { id: "kotlin", name: "Kotlin", description: "Native Android in Kotlin with Jetpack Compose", language: "kotlin", creation_tools: ["jdk", "android-cmdline-tools"], available: true },
+  { id: "java", name: "Java", description: "Native Android in Java with XML layouts", language: "java", creation_tools: [], available: true },
+];
+let flutterInstalled = false;
+let createJob: { req: any; polls: number; cancelled: boolean } | null = null;
+const query = (k: string) => new URLSearchParams(window.location.search).get(k) === "1";
+
+function mockCreateCheck(r: any): any {
+  const name = String(r.name ?? "").trim();
+  if (!/^[A-Za-z][A-Za-z0-9 _-]{0,63}$/.test(name)) throw new Error("the project name must start with a letter (A–Z)");
+  const pkg = r.package_id ?? `com.example.${name.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+  if (r.package_id && !/^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$/.test(r.package_id)) throw new Error(`the package id may use letters, digits and '_' in each part ('${r.package_id}')`);
+  const d = r.destination ?? {};
+  const target = d.mode === "new-in" ? `${String(d.parent).replace(/[\\/]+$/, "")}\\${name}` : String(d.path ?? "");
+  if (/full/i.test(target)) throw new Error(`${target} is not empty; choose an empty folder or a parent folder for a new one`);
+  if (/^[^A-Za-z]|^[A-Za-z][^:]/.test(target)) throw new Error(`${target} is not an absolute path`);
+  const warnings = target.length > 60 ? [`the project path is ${target.length} characters long; native C++ builds of React Native modules can hit Windows' 260-character limit (a short folder such as C:\\dev is safer)`] : [];
+  return { target, creates_folder: d.mode === "new-in", package_id: pkg, warnings };
+}
+
+function mockCreateStatus(): any {
+  const j = createJob!;
+  j.polls += 1;
+  const r = j.req;
+  const fw = createFrameworks.find((f) => f.id === r.framework)!;
+  const all = [
+    ["check-tools", `the tools ${fw.name} needs are installed`],
+    ["validate", "checking the project name and folder"],
+    ["prepare", "preparing the folder"],
+    ["scaffold", `creating the ${fw.name} project`],
+    ["metadata", "writing .tumr\\project.json"],
+    ["verify", "checking that TUMR recognises the project"],
+    ["register", "adding the project to TUMR"],
+  ].map(([stage, message]) => ({ stage, message }));
+  const shown = Math.min(all.length, j.polls);
+  const base = { id: "create-mock", framework: fw.id, name: r.name, progress: all.slice(0, shown), trusted: false, trust_needs_confirmation: false, started_unix: 0 };
+  const check = mockCreateCheck(r);
+  if (j.cancelled) return { ...base, state: "cancelled", error: { stage: "scaffold", message: "cancelled", cancelled: true, cleanup: `removed the folder it created (${check.target})` } };
+  if (query("createfail") && shown >= 4) return { ...base, state: "failed", error: { stage: "scaffold", message: "create-expo-app failed (exit code 1). Last output:\nnpm error network request failed", cancelled: false, cleanup: `removed the folder it created (${check.target})` } };
+  if (shown < all.length) return { ...base, state: "running" };
+  const unexpected = query("unexpected");
+  return {
+    ...base,
+    state: "done",
+    trusted: !!r.trust && !unexpected,
+    trust_needs_confirmation: !!r.trust && unexpected,
+    result: { path: check.target, framework: fw.id, package_id: check.package_id, metadata: `${check.target}\\.tumr\\project.json`, confidence: fw.id === "expo" ? 90 : 100, warnings: check.warnings, unexpected: unexpected ? ["notes.txt", "scripts/"] : [], unexpected_count: unexpected ? 2 : 0 },
+  };
+}
+
 export async function mockCall(method: string, _params: unknown): Promise<any> {
   await new Promise((r) => setTimeout(r, 250));
   switch (method) {
@@ -91,6 +146,7 @@ export async function mockCall(method: string, _params: unknown): Promise<any> {
       const done = polls > 12;
       const img = 1_500_000_000;
       const failed = fail && polls > 6;
+      if (done && !failed) flutterInstalled = true;
       return {
         id: "mockjob",
         state: failed ? "failed" : done ? "done" : "running",
@@ -210,7 +266,42 @@ export async function mockCall(method: string, _params: unknown): Promise<any> {
     case "approvals.decide":
       approvalAnswered = true;
       return { id: "a1", decision: "allow" };
-    default:
+    // CRT-E: Create Project wizard (`?createfail=1` fails the creation, `?unexpected=1` holds trust)
+    case "project.create.frameworks":
+      return { frameworks: createFrameworks };
+    case "project.create.check":
+      return mockCreateCheck(_params as any);
+    case "project.create.start": {
+      mockCreateCheck(_params as any);
+      createJob = { req: _params, polls: 0, cancelled: false };
+      return { job_id: "create-mock" };
+    }
+    case "project.create.status":
+      return mockCreateStatus();
+    case "project.create.cancel":
+      if (createJob) createJob.cancelled = true;
+      return { cancelled: true };
+    case "project.plan": {
+      const p = _params as { framework?: string };
+      if (!p.framework) return { plan };
+      const tools: Record<string, [string, string][]> = {
+        expo: [["node", "Node.js"]],
+        "react-native": [["node", "Node.js"]],
+        flutter: [["flutter", "Flutter SDK"], ["git", "Git"]],
+        kotlin: [["jdk", "Eclipse Temurin JDK"], ["android-cmdline-tools", "Android command-line tools"]],
+        java: [],
+      };
+      const items = (tools[p.framework] ?? []).map(([component, title]) => ({
+        component,
+        title,
+        version: component === "flutter" ? "3.50.0" : "",
+        action: component === "flutter" && !flutterInstalled ? { kind: "install" } : { kind: "reuse", path: "D:\\TUMR" },
+        approx_download_bytes: component === "flutter" && !flutterInstalled ? 1073741824 : 0,
+        reason: "",
+      }));
+      items.push(plan.items[2] as any);
+      return { plan: { ...plan, items } };
+    }
       throw new Error(`mock: no sample for ${method}`);
   }
 }

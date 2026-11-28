@@ -2,7 +2,7 @@
 // this is what the app opens on once a project has run: what runs now, recent projects with
 // one-click Run, the current problems, and what the coding agent was told and fixed.
 import { useEffect, useState } from "react";
-import { Bot, CircleAlert, FolderOpen, Play, Plus, Smartphone, Wrench } from "lucide-react";
+import { Bot, CircleAlert, FolderOpen, Play, Plus, Smartphone, Sparkles, Wrench } from "lucide-react";
 import { agentCli, call, openPreview } from "./api";
 
 interface Recent {
@@ -76,7 +76,7 @@ export function useHome(): HomeSummary | null {
   return h;
 }
 
-export function Home({ summary, onSetup, onNewProject, onAgents }: { summary: HomeSummary | null; onSetup: (path: string) => void; onNewProject: () => void; onAgents: () => void }) {
+export function Home({ summary, onSetup, onNewProject, onCreate, onAgents }: { summary: HomeSummary | null; onSetup: (path: string) => void; onNewProject: () => void; onCreate: () => void; onAgents: () => void }) {
   const [running, setRunning] = useState<string | null>(null);
   const [result, setResult] = useState<Record<string, string>>({});
   if (!summary) return <p className="busy">Loading…</p>;
@@ -158,9 +158,12 @@ export function Home({ summary, onSetup, onNewProject, onAgents }: { summary: Ho
           </li>
         ))}
       </ul>
-      <p>
+      <p className="home-actions">
+        <button onClick={onCreate}>
+          <Sparkles aria-hidden /> Create a new project
+        </button>
         <button className="secondary" onClick={onNewProject}>
-          <Plus aria-hidden /> Set up a new project
+          <Plus aria-hidden /> Set up an existing project
         </button>
       </p>
 

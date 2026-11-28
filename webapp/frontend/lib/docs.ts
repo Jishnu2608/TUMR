@@ -35,6 +35,13 @@ export const docs: DocPage[] = [
     source: { kind: "site", file: "concepts.mdx", format: "mdx" },
   },
   {
+    slug: ["guides", "create-project"],
+    title: "Create a new project",
+    description: "A new Expo, React Native, Flutter, Kotlin or Java project with the official tools, connected to your coding agent.",
+    group: "Guides",
+    source: { kind: "generated", file: "create-project.md", format: "md" },
+  },
+  {
     slug: ["guides", "kotlin-java"],
     title: "Kotlin and Java (Gradle)",
     description: "Run an Android Studio project through its own Gradle wrapper.",

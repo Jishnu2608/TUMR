@@ -181,6 +181,23 @@ pub const INSTALL_STATUS: &str = "install.status";
 /// `install.cancel` [`JobParams`] → [`CancelResult`]. Downloads are kept for resume. Scope: admin.
 pub const INSTALL_CANCEL: &str = "install.cancel";
 
+// ---- TUMR Create (CRT-A) ------------------------------------------------------------------------
+/// `project.create.frameworks` → the five framework choices (id, name, description, language,
+/// creation tools, whether this version can create them). Scope: admin.
+pub const PROJECT_CREATE_FRAMEWORKS: &str = "project.create.frameworks";
+/// `project.create.check` `tumr_create::CreateRequest` → `{ target, creates_folder, package_id,
+/// warnings }`, or the reason it would be refused (CRT-E: the desktop wizard's inline check of
+/// the name, package id and folder). Writes nothing. Scope: admin.
+pub const PROJECT_CREATE_CHECK: &str = "project.create.check";
+/// `project.create.start` `tumr_create::CreateRequest` → `{ job_id }`. Checks the inputs and
+/// the framework's creation tools first (nothing is written when either fails). Scope: admin.
+pub const PROJECT_CREATE_START: &str = "project.create.start";
+/// `project.create.status` [`JobParams`] → stages, progress, result or error. Scope: admin.
+pub const PROJECT_CREATE_STATUS: &str = "project.create.status";
+/// `project.create.cancel` [`JobParams`] → [`CancelResult`]; the creation rolls back what it
+/// made. Scope: admin.
+pub const PROJECT_CREATE_CANCEL: &str = "project.create.cancel";
+
 // ---- components and administrator actions (INS-005/006) ------------------------------------
 
 /// `components.list` → `{ "components": [tumr_installer::manage::ComponentHealth], "disk": DiskUsage }`.
@@ -280,6 +297,10 @@ pub struct ProjectPlanParams {
     /// Run a fresh environment scan instead of using the stored one.
     #[serde(default)]
     pub rescan: bool,
+    /// CRT-A: plan for a project that does not exist yet, of this TUMR Create framework
+    /// (`expo`, `react-native`, `flutter`, `kotlin`, `java`); `path` is where it will go.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub framework: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]

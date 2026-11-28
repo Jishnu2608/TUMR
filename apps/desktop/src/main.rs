@@ -65,6 +65,12 @@ const ALLOWED: &[&str] = &[
     methods::INSTALL_CANCEL,
     methods::COMPONENTS_LIST,
     methods::ADMIN_RUN,
+    // CRT-E: Create Project wizard
+    methods::PROJECT_CREATE_FRAMEWORKS,
+    methods::PROJECT_CREATE_CHECK,
+    methods::PROJECT_CREATE_START,
+    methods::PROJECT_CREATE_STATUS,
+    methods::PROJECT_CREATE_CANCEL,
 ];
 
 struct Bridge {
@@ -211,9 +217,16 @@ fn update_open(what: String) -> Result<(), String> {
 async fn pick_folder(
     window: tauri::WebviewWindow,
     start: Option<String>,
+    purpose: Option<String>,
 ) -> Result<Option<String>, String> {
+    // the page picks one of these fixed titles (CRT-E: the Create Project wizard)
+    let title = match purpose.as_deref() {
+        Some("parent") => "Choose the folder the new project goes in",
+        Some("empty") => "Choose an empty folder for the new project",
+        _ => "Choose your app's project folder",
+    };
     let mut dialog = rfd::AsyncFileDialog::new()
-        .set_title("Choose your app's project folder")
+        .set_title(title)
         .set_parent(&window);
     if let Some(dir) = start.map(std::path::PathBuf::from).filter(|p| p.is_dir()) {
         dialog = dialog.set_directory(dir);
@@ -475,6 +488,23 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_create_wizard_reaches_the_same_core_methods_as_the_cli() {
+        // CRT-F: the desktop wizard and `tumr create` use one engine; these are the calls the
+        // parity test (`apps/cli/tests/create_parity.rs`) makes on the desktop's behalf
+        for m in [
+            methods::PROJECT_CREATE_FRAMEWORKS,
+            methods::PROJECT_CREATE_CHECK,
+            methods::PROJECT_CREATE_START,
+            methods::PROJECT_CREATE_STATUS,
+            methods::PROJECT_CREATE_CANCEL,
+            methods::PROJECT_PLAN,
+            methods::PROJECT_TRUST,
+        ] {
+            assert!(ALLOWED.contains(&m), "{m}");
+        }
+    }
 
     #[test]
     #[allow(clippy::many_single_char_names)]
